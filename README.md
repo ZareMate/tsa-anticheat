@@ -77,6 +77,39 @@ config/tsa_anticheat/<player-uuid>.txt
 
 Packet results can optionally be sent to a Discord webhook and broadcast to staff/operators. The LuckPerms permission defaults to `tsa_anticheat.alerts`.
 
+## Hash generation command
+
+Operators can generate the same deterministic SHA-256 hashes used by TSA's client scanner directly from files on the server.
+
+Hash a mod:
+
+```
+/tsa hash mod <name>
+```
+
+Hash a resource pack:
+
+```
+/tsa hash resourcepack <name>
+```
+
+Both arguments have autocomplete from the server's `mods/` and `resourcepacks/` directories.
+
+The command prints the resulting hash:
+
+```
+MOD example-mod.jar
+SHA-256: 0123456789abcdef...
+```
+
+The generated value can be pasted directly into:
+
+```
+config/tsa_anticheat/blacklisted_hashes.txt
+```
+
+The hash algorithm is identical to the client-side scanner: ZIP/JAR metadata such as timestamps and compression settings are ignored, while logical file names and contents are included.
+
 ## Public API
 
 Other server-side mods can read TSA data through:

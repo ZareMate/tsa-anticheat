@@ -1,7 +1,33 @@
+# Gradle
 .gradle/
+gradle/
 build/
+bin/
+
+# NeoForge run data
 run/
+
+# IDE
 .idea/
-.vscode/
 *.iml
-out/
+*.iws
+*.ipr
+.vscode/
+
+# Eclipse
+.classpath
+.project
+.settings/
+
+# Java
+*.class
+
+# Generated/resources
+src/generated/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Local config / secrets
+config/

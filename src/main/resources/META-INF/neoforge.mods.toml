@@ -4,10 +4,10 @@ license="MIT"
 
 [[mods]]
 modId="tsa_anticheat"
-version="1.0.0"
+version="1.1.0"
 displayName="TSA Anticheat"
 authors="ZareMate"
-description='''Reports client resource packs with xray-related names to the server.'''
+description='''Verifies client resource packs using SHA-256 content hashes.'''
 
 [[dependencies.tsa_anticheat]]
     modId="neoforge"

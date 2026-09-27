@@ -17,7 +17,6 @@ import java.util.HexFormat;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
-import net.minecraft.network.chat.Component;
 
 import net.neoforged.fml.loading.FMLPaths;
 
@@ -138,15 +137,15 @@ public final class PacketIntegrityManager {
         if (server == null) return;
 
         for (ServerPlayer player : server.getPlayerList().getPlayers()) {
-            if (player.hasPermissions(3) || hasBroadcastPermission(player)) {
+            if (hasBroadcastPermission(player)) {
                 player.sendSystemMessage(Component.literal("[TSA Anticheat] " + message));
             }
         }
     }
 
     private static boolean hasBroadcastPermission(ServerPlayer player) {
-        return player.hasPermissions(3) || player.getServer().getPlayerList().getPlayers().contains(player)
-                && hasPermissionViaLuckPerms(player, TsaAnticheatConfig.BROADCAST_PERMISSION.get());
+        if (player.hasPermissions(3)) return true;
+        return hasPermissionViaLuckPerms(player, TsaAnticheatConfig.BROADCAST_PERMISSION.get());
     }
 
     private static boolean hasPermissionViaLuckPerms(ServerPlayer player, String permission) {

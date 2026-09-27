@@ -4,10 +4,10 @@ license="MIT"
 
 [[mods]]
 modId="tsa_anticheat"
-version="1.2.0"
+version="1.3.0"
 displayName="TSA Anticheat"
 authors="ZareMate"
-description='''Verifies client resource packs and mods using SHA-256 content hashes and provides packet integrity checks with Discord webhook and permission-based broadcasts.'''
+description='''Verifies client resource packs and mods using SHA-256 content hashes and provides packet integrity checks with Discord webhook, permission-based broadcasts, and public APIs.'''
 
 [[dependencies.tsa_anticheat]]
     modId="neoforge"
@@ -22,3 +22,10 @@ description='''Verifies client resource packs and mods using SHA-256 content has
     versionRange="[1.21.1,1.22)"
     ordering="NONE"
     side="BOTH"
+
+[[dependencies.tsa_anticheat]]
+    modId="admin_notes"
+    type="optional"
+    versionRange="[2.0.0,)"
+    ordering="AFTER"
+    side="SERVER"

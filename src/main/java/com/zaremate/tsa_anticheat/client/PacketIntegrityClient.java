@@ -4,15 +4,12 @@ import com.zaremate.tsa_anticheat.PacketIntegrityChallengePayload;
 import com.zaremate.tsa_anticheat.PacketIntegrityManager;
 import com.zaremate.tsa_anticheat.PacketIntegrityResponsePayload;
 import net.minecraft.client.Minecraft;
-import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.neoforge.client.network.event.RegisterClientPayloadHandlersEvent;
 import net.neoforged.neoforge.network.PacketDistributor;
 
 public final class PacketIntegrityClient {
-    private PacketIntegrityClient() {
-    }
+    private PacketIntegrityClient() {}
 
-    @SubscribeEvent
     public static void registerPayloads(RegisterClientPayloadHandlersEvent event) {
         event.register(
                 PacketIntegrityChallengePayload.TYPE,
@@ -33,7 +30,10 @@ public final class PacketIntegrityClient {
         );
 
         PacketDistributor.sendToServer(
-                new PacketIntegrityResponsePayload(payload.challenge(), response)
+                new PacketIntegrityResponsePayload(
+                        payload.challenge(),
+                        response
+                )
         );
     }
 }

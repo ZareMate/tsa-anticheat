@@ -64,7 +64,10 @@ public record XrayReportPayload(String data) implements CustomPacketPayload {
                     StandardOpenOption.APPEND
             );
         } catch (IOException exception) {
-            System.err.println("Failed to write TSA Anticheat report for " + player.getGameProfile().name());
+            System.err.println(
+                    "Failed to write TSA Anticheat report for " +
+                    player.getGameProfile().getName()
+            );
             exception.printStackTrace();
         }
     }

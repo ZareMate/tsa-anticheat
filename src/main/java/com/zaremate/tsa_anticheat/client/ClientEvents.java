@@ -10,7 +10,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Locale;
 
 public final class ClientEvents {
     private ClientEvents() {
@@ -24,20 +23,28 @@ public final class ClientEvents {
             return;
         }
 
-        List<String> suspicious = new ArrayList<>();
+        List<String> reports = new ArrayList<>();
 
         try (var stream = Files.list(resourcePacks)) {
-            stream.map(Path::getFileName)
-                    .map(Path::toString)
-                    .filter(name -> name.toLowerCase(Locale.ROOT).contains("ray"))
-                    .forEach(suspicious::add);
+            stream.forEach(resourcePack -> {
+                try {
+                    String hash = ResourcePackHasher.hash(resourcePack);
+                    String name = resourcePack.getFileName().toString();
+
+                    // The name is sent for human-readable reporting, but the
+                    // server's detection decision is based only on the hash.
+                    reports.add(name + "|" + hash);
+                } catch (Exception ignored) {
+                    // Ignore unreadable/invalid resource packs.
+                }
+            });
         } catch (Exception ignored) {
             return;
         }
 
-        if (!suspicious.isEmpty()) {
+        if (!reports.isEmpty()) {
             PacketDistributor.sendToServer(
-                    new XrayReportPayload(String.join(", ", suspicious))
+                    new XrayReportPayload(String.join("\n", reports))
             );
         }
     }

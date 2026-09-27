@@ -22,7 +22,7 @@ public final class PacketIntegrityCommands {
 
         dispatcher.register(
                 Commands.literal("tsa")
-                        .requires(source -> source.hasPermission(3))
+                        .requires(TsaPermissions::canUseCommands)
                         .then(Commands.literal("packetcheck")
                                 .then(Commands.argument("player", EntityArgument.player())
                                         .executes(context -> startCheck(

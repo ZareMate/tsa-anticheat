@@ -147,20 +147,7 @@ public final class PacketIntegrityManager {
     }
 
     private static boolean hasBroadcastPermission(ServerPlayer player) {
-        if (player.hasPermissions(3)) return true;
-        return hasPermissionViaLuckPerms(player, TsaAnticheatConfig.BROADCAST_PERMISSION.get());
-    }
-
-    private static boolean hasPermissionViaLuckPerms(ServerPlayer player, String permission) {
-        try {
-            var luckPerms = net.luckperms.api.LuckPermsProvider.get();
-            return luckPerms.getPlayerAdapter(ServerPlayer.class)
-                    .getPermissionData(player)
-                    .checkPermission(permission)
-                    .asBoolean();
-        } catch (IllegalStateException exception) {
-            return false;
-        }
+        return TsaPermissions.hasBroadcastPermission(player);
     }
 
     private static void notifyRequester(UUID requester, String message) {

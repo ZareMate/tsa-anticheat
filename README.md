@@ -1,8 +1,8 @@
 # TSA Anticheat
 
-NeoForge 1.21.1 / 21.1.249 client mod and server-side SHA-256 verifier for resource packs and mods.
+NeoForge 1.21.1 / 21.1.249 client mod and server-side SHA-256 verifier for resource packs, mods, and TSA packet-integrity checks.
 
-## How detection works
+## Resource pack and mod detection
 
 When connecting to a server, the client scans:
 
@@ -24,7 +24,7 @@ MOD	some-cheat-mod.jar	abcdef...
 
 The server's detection decision uses only the SHA-256 hash. The filename is retained only so the resulting report is readable.
 
-This means renaming a pack or mod does not bypass detection.
+Renaming a pack or mod does not bypass detection.
 
 ### Resource packs
 
@@ -52,21 +52,22 @@ Alias:
 
 The command has player autocomplete and requires permission level 3.
 
-The server sends a fresh random challenge. The client must return the exact challenge plus a SHA-256 response derived from:
+The server generates a fresh random challenge and sends it to the client. The client must return:
+
+1. The exact challenge it received.
+2. A SHA-256 response derived from:
 
 ```
 tsa-anticheat:packet-integrity:v1|player-uuid|challenge
 ```
 
-The server verifies both values and records one of:
+The server verifies both values.
 
-```
-PASS
-MODIFIED
-TIMEOUT
-```
+Results are:
 
-A response taking longer than 5 seconds is a timeout.
+- `PASS` — challenge and response matched.
+- `MODIFIED` — the challenge or response was changed.
+- `TIMEOUT` — no valid response was received within 5 seconds.
 
 Results are appended to:
 
@@ -82,7 +83,7 @@ Example:
 2026-09-27T17:32:00Z | PACKET_CHECK | TIMEOUT | no response received within 5 seconds
 ```
 
-This checks the integrity of the TSA challenge/response packets. It does not provide cryptographic proof that an arbitrary malicious client is unable to emulate the TSA client logic; a modified client that intentionally implements the expected protocol can still answer correctly.
+This specifically checks the integrity of the TSA challenge/response exchange. It is not a cryptographic proof that a modified client cannot emulate the TSA protocol, and it does not inspect or cryptographically authenticate arbitrary vanilla gameplay packets.
 
 ## Blacklist
 

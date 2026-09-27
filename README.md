@@ -1,22 +1,40 @@
 # TSA Anticheat
 
-NeoForge 1.21.1 / 21.1.249 resource-pack hash verifier.
+NeoForge 1.21.1 / 21.1.249 client mod and server-side SHA-256 verifier for resource packs and mods.
 
 ## How detection works
 
-The client scans the Minecraft `resourcepacks` directory when connecting to a server.
+When connecting to a server, the client scans:
 
-For every resource pack it sends:
+- `resourcepacks/`
+- `mods/`
+
+For every entry it calculates a deterministic SHA-256 hash and sends:
 
 ```
-resource-pack-name|sha256
+TYPE<TAB>name<TAB>sha256
 ```
 
-The server ignores the filename when deciding whether a pack is blacklisted. It compares only the SHA-256 hash.
+Examples:
 
-ZIP resource packs are hashed from their logical files in sorted order, so changing the ZIP filename does not change the hash. ZIP timestamps/compression metadata are also ignored.
+```
+RESOURCE_PACK	XrayPack.zip	012345...
+MOD	some-cheat-mod.jar	abcdef...
+```
 
-Folder resource packs use the same canonical filename + file-content hashing scheme.
+The server's detection decision uses only the SHA-256 hash. The filename is retained only so the resulting report is readable.
+
+This means renaming a pack or mod does not bypass detection.
+
+### Resource packs
+
+ZIP resource packs are hashed from their logical files in sorted order. ZIP timestamps and compression metadata are ignored.
+
+Folder resource packs use the same canonical relative-path + file-content hashing scheme.
+
+### Mods
+
+Mod JARs are treated as ZIP files and hashed from their logical entries in sorted order, so changing the JAR filename does not change its hash.
 
 ## Blacklist
 
@@ -26,28 +44,35 @@ On the first received report the server creates:
 config/tsa_anticheat/blacklisted_hashes.txt
 ```
 
-Put one SHA-256 hash per line:
+Put one SHA-256 hash per line. The same file can contain hashes for both mods and resource packs:
 
 ```
-# Example
+# Resource pack
 0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
+
+# Mod
+abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
 ```
 
 Comments beginning with `#` and invalid lines are ignored.
 
-When a received hash matches this file, the server records:
+When a received hash matches, the server records a report such as:
 
 ```
-YYYY-MM-DD | DETECTED | pack-name [sha256]
+2026-09-27 | DETECTED | MOD some-cheat-mod.jar [abcdef...]
 ```
 
-in:
+or:
+
+```
+2026-09-27 | DETECTED | RESOURCE_PACK XrayPack.zip [012345...]
+```
+
+Reports are stored in:
 
 ```
 config/tsa_anticheat/<player-uuid>.txt
 ```
-
-The pack name is retained only for identifying what the player had installed; detection is based on the hash.
 
 ## Build
 

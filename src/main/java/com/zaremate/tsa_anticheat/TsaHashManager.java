@@ -46,7 +46,7 @@ public final class TsaHashManager {
             return;
         }
 
-        if (!pending.type().equals(response.type())
+        if (!pending.type().equals(response.kind())
                 || !pending.name().equals(response.requestedName())) {
             player.sendSystemMessage(
                     Component.literal("[TSA] Ignored invalid hash response.")

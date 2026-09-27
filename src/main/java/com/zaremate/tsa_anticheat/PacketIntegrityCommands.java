@@ -55,29 +55,41 @@ public final class PacketIntegrityCommands {
                         )
                         .then(Commands.literal("hash")
                                 .then(Commands.literal("mod")
-                                        .then(Commands.argument("name", StringArgumentType.string())
-                                                .suggests((context, builder) ->
-                                                        suggestEntries(builder, FMLPaths.GAMEDIR.get().resolve("mods")))
-                                                .executes(context -> hashNamedOrAll(
-                                                        context.getSource(),
-                                                        "MOD",
-                                                        FMLPaths.GAMEDIR.get().resolve("mods"),
-                                                        StringArgumentType.getString(context, "name")
-                                                )))
+                                        .then(Commands.literal("*")
+                                        .executes(context -> hashAllEntries(
+                                                context.getSource(),
+                                                "MOD",
+                                                FMLPaths.GAMEDIR.get().resolve("mods")
+                                        )))
+                                .then(Commands.argument("name", StringArgumentType.string())
+                                        .suggests((context, builder) ->
+                                                suggestEntries(builder, FMLPaths.GAMEDIR.get().resolve("mods")))
+                                        .executes(context -> hashEntry(
+                                                context.getSource(),
+                                                "MOD",
+                                                FMLPaths.GAMEDIR.get().resolve("mods"),
+                                                StringArgumentType.getString(context, "name")
+                                        )))
                                 )
                                 .then(Commands.literal("resourcepack")
-                                        .then(Commands.argument("name", StringArgumentType.string())
-                                                .suggests((context, builder) ->
-                                                        suggestEntries(
-                                                                builder,
-                                                                FMLPaths.GAMEDIR.get().resolve("resourcepacks")
-                                                        ))
-                                                .executes(context -> hashNamedOrAll(
-                                                        context.getSource(),
-                                                        "RESOURCE_PACK",
-                                                        FMLPaths.GAMEDIR.get().resolve("resourcepacks"),
-                                                        StringArgumentType.getString(context, "name")
-                                                )))
+                                        .then(Commands.literal("*")
+                                        .executes(context -> hashAllEntries(
+                                                context.getSource(),
+                                                "RESOURCE_PACK",
+                                                FMLPaths.GAMEDIR.get().resolve("resourcepacks")
+                                        )))
+                                .then(Commands.argument("name", StringArgumentType.string())
+                                        .suggests((context, builder) ->
+                                                suggestEntries(
+                                                        builder,
+                                                        FMLPaths.GAMEDIR.get().resolve("resourcepacks")
+                                                ))
+                                        .executes(context -> hashEntry(
+                                                context.getSource(),
+                                                "RESOURCE_PACK",
+                                                FMLPaths.GAMEDIR.get().resolve("resourcepacks"),
+                                                StringArgumentType.getString(context, "name")
+                                        )))
                                 )
                         )
         );
@@ -99,19 +111,6 @@ public final class PacketIntegrityCommands {
         );
 
         return 1;
-    }
-
-    private static int hashNamedOrAll(
-            CommandSourceStack source,
-            String type,
-            Path directory,
-            String name
-    ) {
-        if ("*".equals(name)) {
-            return hashAllEntries(source, type, directory);
-        }
-
-        return hashEntry(source, type, directory, name);
     }
 
     private static int hashAllEntries(

@@ -18,7 +18,7 @@ public final class ClientEvents {
 
     @SubscribeEvent
     public static void onLoggingIn(ClientPlayerNetworkEvent.LoggingIn event) {
-        Path resourcePacks = Minecraft.getInstance().gameDirectory.resolve("resourcepacks");
+        Path resourcePacks = Minecraft.getInstance().gameDirectory.toPath().resolve("resourcepacks");
 
         if (!Files.isDirectory(resourcePacks)) {
             return;
@@ -36,7 +36,9 @@ public final class ClientEvents {
         }
 
         if (!suspicious.isEmpty()) {
-            PacketDistributor.sendToServer(new XrayReportPayload(String.join(", ", suspicious)));
+            PacketDistributor.sendToServer(
+                    new XrayReportPayload(String.join(", ", suspicious))
+            );
         }
     }
 }

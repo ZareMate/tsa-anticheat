@@ -22,10 +22,3 @@ description='''Verifies client resource packs and mods using SHA-256 content has
     versionRange="[1.21.1,1.22)"
     ordering="NONE"
     side="BOTH"
-
-[[dependencies.tsa_anticheat]]
-    modId="admin_notes"
-    type="optional"
-    versionRange="[2.0.0,)"
-    ordering="AFTER"
-    side="SERVER"

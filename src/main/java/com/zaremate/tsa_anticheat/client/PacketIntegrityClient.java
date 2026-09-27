@@ -4,23 +4,16 @@ import com.zaremate.tsa_anticheat.PacketIntegrityChallengePayload;
 import com.zaremate.tsa_anticheat.PacketIntegrityManager;
 import com.zaremate.tsa_anticheat.PacketIntegrityResponsePayload;
 import net.minecraft.client.Minecraft;
-import net.neoforged.neoforge.client.network.event.RegisterClientPayloadHandlersEvent;
 import net.neoforged.neoforge.network.PacketDistributor;
 
 public final class PacketIntegrityClient {
     private PacketIntegrityClient() {}
 
-    public static void registerPayloads(RegisterClientPayloadHandlersEvent event) {
-        event.register(
-                PacketIntegrityChallengePayload.TYPE,
-                (payload, context) -> handleChallenge(payload)
-        );
-    }
+    public static void handleChallenge(PacketIntegrityChallengePayload payload) {
+        var minecraft = Minecraft.getInstance();
+        var gameProfile = minecraft.getGameProfile();
 
-    private static void handleChallenge(PacketIntegrityChallengePayload payload) {
-        var gameProfile = Minecraft.getInstance().getGameProfile();
-
-        if (gameProfile == null || Minecraft.getInstance().player == null) {
+        if (gameProfile == null || minecraft.player == null) {
             return;
         }
 

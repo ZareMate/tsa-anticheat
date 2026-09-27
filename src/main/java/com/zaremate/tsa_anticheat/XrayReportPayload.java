@@ -53,6 +53,7 @@ public record XrayReportPayload(String data) implements CustomPacketPayload {
         }
 
         List<String> detected = new ArrayList<>();
+        List<String> detectedResourcePacks = new ArrayList<>();
 
         for (String line : data.split("\\R")) {
             int lastSeparator = line.lastIndexOf('\t');
@@ -76,12 +77,25 @@ public record XrayReportPayload(String data) implements CustomPacketPayload {
             }
 
             if (hash.matches("[0-9a-f]{64}") && blacklistedHashes.contains(hash)) {
-                detected.add(type + " " + name + " [" + hash + "]");
+                String detection = type + " " + name + " [" + hash + "]";
+                detected.add(detection);
+
+                if (type.equals("RESOURCE_PACK")) {
+                    detectedResourcePacks.add(name + " [" + hash + "]");
+                }
             }
         }
 
         if (!detected.isEmpty()) {
             writeReport(player, detected);
+
+            if (!detectedResourcePacks.isEmpty()) {
+                DiscordWebhook.sendResourcePackDetection(
+                        player.getGameProfile().getName(),
+                        player.getUUID().toString(),
+                        detectedResourcePacks
+                );
+            }
         }
     }
 

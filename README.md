@@ -93,7 +93,14 @@ Hash a resource pack:
 /tsa hash resourcepack <name>
 ```
 
-Both arguments have autocomplete from the server's `mods/` and `resourcepacks/` directories.
+Use `*` as the name to hash every entry in that directory:
+
+```
+/tsa hash mod *
+/tsa hash resourcepack *
+```
+
+Both arguments have autocomplete from the server's `mods/` and `resourcepacks/` directories. The wildcard command hashes every entry, saves every result, and reports the number of successful and failed hashes.
 
 The command prints the resulting hash:
 

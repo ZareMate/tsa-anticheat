@@ -9,6 +9,5 @@ import net.neoforged.neoforge.common.NeoForge;
 public final class ClientInit {
     public ClientInit(IEventBus modEventBus) {
         NeoForge.EVENT_BUS.register(ClientEvents.class);
-        modEventBus.addListener(PacketIntegrityClient::registerPayloads);
     }
 }

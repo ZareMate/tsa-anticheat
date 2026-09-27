@@ -55,17 +55,28 @@ public record XrayReportPayload(String data) implements CustomPacketPayload {
         List<String> detected = new ArrayList<>();
 
         for (String line : data.split("\\R")) {
-            int separator = line.lastIndexOf('|');
+            int lastSeparator = line.lastIndexOf('\t');
 
-            if (separator <= 0 || separator == line.length() - 1) {
+            if (lastSeparator <= 0 || lastSeparator == line.length() - 1) {
                 continue;
             }
 
-            String name = line.substring(0, separator);
-            String hash = line.substring(separator + 1).trim().toLowerCase(Locale.ROOT);
+            int firstSeparator = line.indexOf('\t');
+
+            if (firstSeparator <= 0 || firstSeparator >= lastSeparator) {
+                continue;
+            }
+
+            String type = line.substring(0, firstSeparator).trim().toUpperCase(Locale.ROOT);
+            String name = line.substring(firstSeparator + 1, lastSeparator);
+            String hash = line.substring(lastSeparator + 1).trim().toLowerCase(Locale.ROOT);
+
+            if (!type.equals("MOD") && !type.equals("RESOURCE_PACK")) {
+                continue;
+            }
 
             if (hash.matches("[0-9a-f]{64}") && blacklistedHashes.contains(hash)) {
-                detected.add(name + " [" + hash + "]");
+                detected.add(type + " " + name + " [" + hash + "]");
             }
         }
 
@@ -84,7 +95,8 @@ public record XrayReportPayload(String data) implements CustomPacketPayload {
             if (Files.notExists(hashesFile)) {
                 Files.writeString(
                         hashesFile,
-                        "# One SHA-256 hash per line. The resource-pack filename is ignored.\n" +
+                        "# One SHA-256 hash per line. Hashes can belong to mods or resource packs.\n" +
+                        "# Detection is based on content, not the filename.\n" +
                         "# Example: 0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef\n",
                         StandardCharsets.UTF_8,
                         StandardOpenOption.CREATE_NEW

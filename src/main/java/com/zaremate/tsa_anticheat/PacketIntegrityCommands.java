@@ -58,7 +58,7 @@ public final class PacketIntegrityCommands {
                                         .then(Commands.argument("name", StringArgumentType.string())
                                                 .suggests((context, builder) ->
                                                         suggestEntries(builder, FMLPaths.GAMEDIR.get().resolve("mods")))
-                                                .executes(context -> hashEntry(
+                                                .executes(context -> hashNamedOrAll(
                                                         context.getSource(),
                                                         "MOD",
                                                         FMLPaths.GAMEDIR.get().resolve("mods"),
@@ -72,7 +72,7 @@ public final class PacketIntegrityCommands {
                                                                 builder,
                                                                 FMLPaths.GAMEDIR.get().resolve("resourcepacks")
                                                         ))
-                                                .executes(context -> hashEntry(
+                                                .executes(context -> hashNamedOrAll(
                                                         context.getSource(),
                                                         "RESOURCE_PACK",
                                                         FMLPaths.GAMEDIR.get().resolve("resourcepacks"),
@@ -99,6 +99,97 @@ public final class PacketIntegrityCommands {
         );
 
         return 1;
+    }
+
+    private static int hashNamedOrAll(
+            CommandSourceStack source,
+            String type,
+            Path directory,
+            String name
+    ) {
+        if ("*".equals(name)) {
+            return hashAllEntries(source, type, directory);
+        }
+
+        return hashEntry(source, type, directory, name);
+    }
+
+    private static int hashAllEntries(
+            CommandSourceStack source,
+            String type,
+            Path directory
+    ) {
+        if (!Files.isDirectory(directory)) {
+            source.sendFailure(
+                    Component.literal(
+                            "Directory not found: " + directory
+                    )
+            );
+            return 0;
+        }
+
+        int hashed = 0;
+        int failed = 0;
+
+        try (var stream = Files.list(directory)) {
+            var entries = stream
+                    .sorted()
+                    .toList();
+
+            for (Path entry : entries) {
+                if (!Files.exists(entry)) {
+                    continue;
+                }
+
+                try {
+                    String hash = ResourcePackHasher.hash(entry);
+                    saveGeneratedHash(
+                            type,
+                            entry.getFileName().toString(),
+                            hash
+                    );
+                    hashed++;
+                } catch (Exception exception) {
+                    failed++;
+                    TsaAnticheat.LOGGER.warn(
+                            "Failed to hash {} {}",
+                            type,
+                            entry,
+                            exception
+                    );
+                }
+            }
+        } catch (Exception exception) {
+            TsaAnticheat.LOGGER.warn(
+                    "Failed to list {} directory {}",
+                    type,
+                    directory,
+                    exception
+            );
+            source.sendFailure(
+                    Component.literal(
+                            "Failed to read " + type.toLowerCase() + " directory."
+                    )
+            );
+            return 0;
+        }
+
+        int finalHashed = hashed;
+        int finalFailed = failed;
+
+        source.sendSuccess(
+                () -> Component.literal(
+                        "Hashed " + finalHashed + " " + type.toLowerCase()
+                                + (finalHashed == 1 ? "" : "s")
+                                + (finalFailed > 0
+                                ? " (" + finalFailed + " failed)"
+                                : "")
+                                + "\nSaved to config/tsa_anticheat/generated_hashes.txt"
+                ),
+                false
+        );
+
+        return hashed;
     }
 
     private static int hashEntry(
@@ -194,13 +285,16 @@ public final class PacketIntegrityCommands {
             Path directory
     ) {
         try (var stream = Files.list(directory)) {
-            return SharedSuggestionProvider.suggest(
+            var suggestions = new java.util.ArrayList<String>();
+            suggestions.add("*");
+            suggestions.addAll(
                     stream
                             .map(path -> path.getFileName().toString())
                             .sorted()
-                            .toList(),
-                    builder
+                            .toList()
             );
+
+            return SharedSuggestionProvider.suggest(suggestions, builder);
         } catch (Exception exception) {
             return builder.buildFuture();
         }

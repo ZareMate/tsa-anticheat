@@ -79,37 +79,31 @@ Packet results can optionally be sent to a Discord webhook and broadcast to staf
 
 ## Hash generation command
 
-Operators can generate the same deterministic SHA-256 hashes used by TSA's client scanner directly from files on the server.
+Operators can generate the same deterministic SHA-256 hashes used by TSA's client scanner from the **local files of the player executing the command**.
 
-Hash a mod:
+Run from an in-game operator account:
 
 ```
 /tsa hash mod <name>
-```
-
-Hash a resource pack:
-
-```
 /tsa hash resourcepack <name>
 ```
 
-Use `*` as the name to hash every entry in that directory:
+Use `*` to hash every local entry of that type:
 
 ```
 /tsa hash mod *
 /tsa hash resourcepack *
 ```
 
-Both arguments have autocomplete from the server's `mods/` and `resourcepacks/` directories. The wildcard command hashes every entry, saves every result, and reports the number of successful and failed hashes.
+For named entries, the client resolves the name inside its own `mods/` or `resourcepacks/` directory. The server does not read its own directories for these commands, so the resulting hashes represent the player's installed files.
 
-The command prints the resulting hash:
+Generated hashes are sent back to the server and saved to:
 
 ```
-MOD example-mod.jar
-SHA-256: 0123456789abcdef...
+config/tsa_anticheat/generated_hashes.txt
 ```
 
-Each generated hash is also saved to `config/tsa_anticheat/generated_hashes.txt`. Duplicate entries are not written twice.
+Duplicate entries are not written twice. The wildcard command reports the number of successful and failed local hashes.
 
 The generated value can be pasted directly into:
 
@@ -117,7 +111,9 @@ The generated value can be pasted directly into:
 config/tsa_anticheat/blacklisted_hashes.txt
 ```
 
-The hash algorithm is identical to the client-side scanner: ZIP/JAR metadata such as timestamps and compression settings are ignored, while logical file names and contents are included.
+The hash algorithm is identical to the normal client-side scanner: ZIP/JAR metadata such as timestamps and compression settings are ignored, while logical file names and contents are included.
+
+The server cannot autocomplete arbitrary local filenames because it does not have access to the player's filesystem; `*` is available directly in the command tree.
 
 ## Public API
 

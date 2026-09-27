@@ -4,8 +4,8 @@ import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
-import net.minecraft.commands.arguments.EntityArgument;
 import net.minecraft.commands.SharedSuggestionProvider;
+import net.minecraft.commands.arguments.EntityArgument;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
 import net.neoforged.bus.api.SubscribeEvent;
@@ -15,8 +15,9 @@ import net.neoforged.neoforge.event.RegisterCommandsEvent;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.UUID;
+import com.mojang.brigadier.suggestion.Suggestions;
+
 import java.util.concurrent.CompletableFuture;
-import java.util.stream.Stream;
 
 public final class PacketIntegrityCommands {
     private PacketIntegrityCommands() {
@@ -33,14 +34,14 @@ public final class PacketIntegrityCommands {
                                 .then(Commands.argument("player", EntityArgument.player())
                                         .executes(context -> startCheck(
                                                 context.getSource(),
-                                                net.minecraft.commands.arguments.EntityArgument.getPlayer(
+                                                EntityArgument.getPlayer(
                                                         context,
                                                         "player"
                                                 )
                                         )))
                         )
                         .then(Commands.literal("checkpacket")
-                                .then(Commands.argument("player", net.minecraft.commands.arguments.EntityArgument.player())
+                                .then(Commands.argument("player", EntityArgument.player())
                                         .executes(context -> startCheck(
                                                 context.getSource(),
                                                 net.minecraft.commands.arguments.EntityArgument.getPlayer(
@@ -116,7 +117,7 @@ public final class PacketIntegrityCommands {
         }
 
         try {
-            String hash = com.zaremate.tsa_anticheat.client.ResourcePackHasher.hash(entry);
+            String hash = ResourcePackHasher.hash(entry);
 
             source.sendSuccess(
                     () -> Component.literal(
@@ -143,11 +144,11 @@ public final class PacketIntegrityCommands {
         }
     }
 
-    private static CompletableFuture<com.mojang.brigadier.suggestion.Suggestions> suggestEntries(
+    private static CompletableFuture<Suggestions> suggestEntries(
             com.mojang.brigadier.suggestion.SuggestionsBuilder builder,
             Path directory
     ) {
-        try (Stream<Path> stream = Files.list(directory)) {
+        try (var stream = Files.list(directory)) {
             return SharedSuggestionProvider.suggest(
                     stream
                             .map(path -> path.getFileName().toString())

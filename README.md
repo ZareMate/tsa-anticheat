@@ -75,7 +75,7 @@ Results are appended to:
 config/tsa_anticheat/<player-uuid>.txt
 ```
 
-Packet results can optionally be sent to a Discord webhook and broadcast to staff/operators. The default common configuration is:
+Failed packet checks (`MODIFIED` and `TIMEOUT`) and blacklisted resource-pack detections can optionally be sent to a Discord webhook. Successful `PASS` checks do not send webhook notifications. Packet results are still broadcast to staff/operators. The default common configuration is:
 
 ```toml
 webhook_enabled = false

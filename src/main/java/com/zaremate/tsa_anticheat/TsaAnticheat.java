@@ -1,6 +1,5 @@
 package com.zaremate.tsa_anticheat;
 
-import com.zaremate.tsa_anticheat.client.PacketIntegrityClient;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.fml.ModContainer;
 import net.neoforged.fml.common.Mod;
@@ -47,7 +46,24 @@ public final class TsaAnticheat {
         registrar.playToClient(
                 PacketIntegrityChallengePayload.TYPE,
                 PacketIntegrityChallengePayload.STREAM_CODEC,
-                (payload, context) -> PacketIntegrityClient.handleChallenge(payload)
+                (payload, context) -> handleClientChallenge(payload)
         );
+    }
+
+    private static void handleClientChallenge(PacketIntegrityChallengePayload payload) {
+        try {
+            Class<?> handler = Class.forName(
+                    "com.zaremate.tsa_anticheat.client.PacketIntegrityClient"
+            );
+
+            handler.getMethod(
+                    "handleChallenge",
+                    PacketIntegrityChallengePayload.class
+            ).invoke(null, payload);
+        } catch (ClassNotFoundException ignored) {
+            // Client-only handler is not present on a dedicated server.
+        } catch (ReflectiveOperationException exception) {
+            LOGGER.warn("Failed to dispatch packet integrity challenge to the client handler.", exception);
+        }
     }
 }

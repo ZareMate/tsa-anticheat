@@ -7,13 +7,21 @@ import net.neoforged.fml.config.ModConfig;
 import net.neoforged.neoforge.common.NeoForge;
 import net.neoforged.neoforge.network.event.RegisterPayloadHandlersEvent;
 import net.neoforged.neoforge.network.registration.PayloadRegistrar;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @Mod(TsaAnticheat.MOD_ID)
 public final class TsaAnticheat {
     public static final String MOD_ID = "tsa_anticheat";
+    public static final Logger LOGGER =
+            LoggerFactory.getLogger(MOD_ID);
 
     public TsaAnticheat(IEventBus modEventBus, ModContainer container) {
-        container.registerConfig(ModConfig.Type.COMMON, TsaAnticheatConfig.SPEC);
+        container.registerConfig(
+                ModConfig.Type.COMMON,
+                TsaAnticheatConfig.SPEC
+        );
+
         modEventBus.addListener(TsaAnticheat::registerPayloads);
 
         NeoForge.EVENT_BUS.register(PacketIntegrityCommands.class);

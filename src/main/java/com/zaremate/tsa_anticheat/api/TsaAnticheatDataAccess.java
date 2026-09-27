@@ -107,9 +107,20 @@ final class TsaAnticheatDataAccess {
                             ? parts[2].trim() + " | " + parts[3].trim()
                             : parts[2].trim();
 
-                    record.detections.add(
-                            timestamp + " | DETECTED | " + details
-                    );
+                    java.util.regex.Matcher matcher =
+                            DETECTION_PATTERN.matcher(details);
+
+                    while (matcher.find()) {
+                        String detectionType = matcher.group(1);
+                        String name = matcher.group(2).trim();
+                        String hash = matcher.group(3);
+
+                        record.detections.add(
+                                timestamp + " | DETECTED | "
+                                        + detectionType + " "
+                                        + name + " [" + hash + "]"
+                        );
+                    }
                 }
             }
         } catch (Exception exception) {

@@ -4,6 +4,7 @@ import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
+import net.minecraft.commands.arguments.EntityArgument;
 import net.minecraft.commands.SharedSuggestionProvider;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
@@ -14,6 +15,7 @@ import net.neoforged.neoforge.event.RegisterCommandsEvent;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 import java.util.stream.Stream;
 
 public final class PacketIntegrityCommands {
@@ -28,7 +30,7 @@ public final class PacketIntegrityCommands {
                 Commands.literal("tsa")
                         .requires(source -> source.hasPermission(3))
                         .then(Commands.literal("packetcheck")
-                                .then(Commands.argument("player", net.minecraft.commands.arguments.EntityArgument.player())
+                                .then(Commands.argument("player", EntityArgument.player())
                                         .executes(context -> startCheck(
                                                 context.getSource(),
                                                 net.minecraft.commands.arguments.EntityArgument.getPlayer(
@@ -141,13 +143,7 @@ public final class PacketIntegrityCommands {
         }
     }
 
-    private static com.mojang.brigadier.suggestion.SuggestionsBuilder unused(
-            com.mojang.brigadier.suggestion.SuggestionsBuilder builder
-    ) {
-        return builder;
-    }
-
-    private static com.mojang.brigadier.suggestion.Suggestions suggestEntries(
+    private static CompletableFuture<com.mojang.brigadier.suggestion.Suggestions> suggestEntries(
             com.mojang.brigadier.suggestion.SuggestionsBuilder builder,
             Path directory
     ) {
@@ -158,9 +154,9 @@ public final class PacketIntegrityCommands {
                             .sorted()
                             .toList(),
                     builder
-            ).join();
+            );
         } catch (Exception exception) {
-            return builder.buildFuture().join();
+            return builder.buildFuture();
         }
     }
 }

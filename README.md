@@ -80,12 +80,16 @@ Packet results can optionally be sent to a Discord webhook and broadcast to staf
 ```toml
 webhook_enabled = false
 webhook_url = ""
+command_permission = "tsa_anticheat.command"
 broadcast_permission = "tsa_anticheat.alerts"
 packet_check_timeout_seconds = 5
 ```
 
 Set `webhook_enabled = true` and provide `webhook_url` to enable Discord notifications. The packet-integrity response timeout defaults to 5 seconds and can be configured from 1 to 300 seconds.
 
+
+
+The `command_permission` controls access to all `/tsa` commands. Players with permission level 3 always have access. By default, grant the LuckPerms node `tsa_anticheat.command`.
 ## Hash generation command
 
 Operators can generate the same deterministic SHA-256 hashes used by TSA's client scanner from the **local files of the player executing the command**.

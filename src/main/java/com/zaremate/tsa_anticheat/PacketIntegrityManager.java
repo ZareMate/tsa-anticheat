@@ -132,7 +132,15 @@ public final class PacketIntegrityManager {
 
         notifyRequester(requester, message);
         broadcast(message);
-        DiscordWebhook.send(playerName, playerUuid.toString(), result.name(), reason);
+
+        if (result == Result.MODIFIED || result == Result.TIMEOUT) {
+            DiscordWebhook.send(
+                    playerName,
+                    playerUuid.toString(),
+                    result.name(),
+                    reason
+            );
+        }
     }
 
     private static void broadcast(String message) {

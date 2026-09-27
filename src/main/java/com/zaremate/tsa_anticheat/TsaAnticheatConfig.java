@@ -19,6 +19,13 @@ public final class TsaAnticheatConfig {
                     "Keep this URL private."
             ).define("webhook_url", "");
 
+    public static final ModConfigSpec.ConfigValue<String> COMMAND_PERMISSION =
+            BUILDER.comment(
+                    "LuckPerms permission required to use /tsa commands.",
+                    "Operators with permission level 3 always have access.",
+                    "Default: tsa_anticheat.command."
+            ).define("command_permission", "tsa_anticheat.command");
+
     public static final ModConfigSpec.ConfigValue<String> BROADCAST_PERMISSION =
             BUILDER.comment(
                     "LuckPerms permission for players who receive packet integrity broadcasts.",

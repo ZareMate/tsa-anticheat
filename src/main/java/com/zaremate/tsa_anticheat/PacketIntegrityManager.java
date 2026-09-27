@@ -17,6 +17,7 @@ import java.util.HexFormat;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+import net.minecraft.network.chat.Component;
 
 import net.neoforged.fml.loading.FMLPaths;
 
@@ -90,18 +91,9 @@ public final class PacketIntegrityManager {
                 return false;
             }
 
-            writeResult(
-                    pending.playerName(),
-                    entry.getKey(),
-                    Result.TIMEOUT,
-                    "no response received within 5 seconds"
-            );
-
-            notifyRequester(
-                    pending.requester(),
-                    "Packet integrity check for " + pending.playerName() + ": TIMEOUT"
-            );
-
+            String reason = "no response received within 5 seconds";
+            writeResult(pending.playerName(), entry.getKey(), Result.TIMEOUT, reason);
+            publishResult(pending.playerName(), entry.getKey(), Result.TIMEOUT, reason, pending.requester());
             return true;
         });
     }
@@ -126,8 +118,47 @@ public final class PacketIntegrityManager {
             message += " (" + reason + ")";
         }
 
-        notifyRequester(pending.requester(), message);
+        publishResult(player.getGameProfile().getName(), player.getUUID(), result, reason, pending.requester());
         System.out.println("[TSA Anticheat] " + message);
+    }
+
+    private static void publishResult(String playerName, UUID playerUuid, Result result, String reason, UUID requester) {
+        String message = "Packet integrity check for " + playerName + ": " + result;
+        if (result == Result.MODIFIED) {
+            message += " (" + reason + ")";
+        }
+
+        notifyRequester(requester, message);
+        broadcast(message);
+        DiscordWebhook.send(playerName, playerUuid.toString(), result.name(), reason);
+    }
+
+    private static void broadcast(String message) {
+        var server = net.neoforged.neoforge.server.ServerLifecycleHooks.getCurrentServer();
+        if (server == null) return;
+
+        for (ServerPlayer player : server.getPlayerList().getPlayers()) {
+            if (player.hasPermissions(3) || hasBroadcastPermission(player)) {
+                player.sendSystemMessage(Component.literal("[TSA Anticheat] " + message));
+            }
+        }
+    }
+
+    private static boolean hasBroadcastPermission(ServerPlayer player) {
+        return player.hasPermissions(3) || player.getServer().getPlayerList().getPlayers().contains(player)
+                && hasPermissionViaLuckPerms(player, TsaAnticheatConfig.BROADCAST_PERMISSION.get());
+    }
+
+    private static boolean hasPermissionViaLuckPerms(ServerPlayer player, String permission) {
+        try {
+            var luckPerms = net.luckperms.api.LuckPermsProvider.get();
+            return luckPerms.getPlayerAdapter(ServerPlayer.class)
+                    .getPermissionData(player)
+                    .checkPermission(permission)
+                    .asBoolean();
+        } catch (IllegalStateException exception) {
+            return false;
+        }
     }
 
     private static void notifyRequester(UUID requester, String message) {

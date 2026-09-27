@@ -18,8 +18,8 @@ TYPE<TAB>name<TAB>sha256
 Examples:
 
 ```
-RESOURCE_PACK	XrayPack.zip	012345...
-MOD	some-cheat-mod.jar	abcdef...
+RESOURCE_PACK\tXrayPack.zip\t012345...
+MOD\tsome-cheat-mod.jar\tabcdef...
 ```
 
 The server's detection decision uses only the SHA-256 hash. The filename is retained only so the resulting report is readable.
@@ -75,15 +75,60 @@ Results are appended to:
 config/tsa_anticheat/<player-uuid>.txt
 ```
 
+Packet results can optionally be sent to a Discord webhook and broadcast to staff/operators. The LuckPerms permission defaults to `tsa_anticheat.alerts`.
+
+## Public API
+
+Other server-side mods can read TSA data through:
+
+```java
+import com.zaremate.tsa_anticheat.api.TsaAnticheatAPI;
+
+Optional<TsaAnticheatAPI.PlayerRecord> record =
+        TsaAnticheatAPI.getPlayer(playerUuid);
+
+List<TsaAnticheatAPI.PlayerRecord> players =
+        TsaAnticheatAPI.getPlayers();
+```
+
+A `PlayerRecord` contains:
+
+- player UUID and name
+- packet check totals
+- PASS / MODIFIED / TIMEOUT totals
+- latest packet-check status and timestamp
+- stored resource-pack/mod detection lines
+
+The API returns immutable snapshots and does not expose the internal file format.
+
+## Admin Notes integration
+
+TSA Anticheat includes an optional bridge for the [Admin Notes](https://github.com/ZareMate/admin-notes) mod.
+
+The bridge uses reflection, so Admin Notes is **not required** and TSA can run normally without it. When Admin Notes is present, other integration code can use:
+
+```java
+com.zaremate.tsa_anticheat.integration.AdminNotesIntegration
+```
+
+Supported bridge operations include reading all notes, reading a note by ID, adding a system note, and removing a note.
+
 Example:
 
-```
-2026-09-27T17:30:00Z | PACKET_CHECK | PASS | challenge and response matched
-2026-09-27T17:31:00Z | PACKET_CHECK | MODIFIED | response hash was modified
-2026-09-27T17:32:00Z | PACKET_CHECK | TIMEOUT | no response received within 5 seconds
+```java
+List<AdminNotesIntegration.NoteView> notes =
+        AdminNotesIntegration.getNotes(playerUuid);
+
+Optional<AdminNotesIntegration.NoteView> note =
+        AdminNotesIntegration.getNote(playerUuid, noteId);
+
+AdminNotesIntegration.addSystemNote(
+        playerUuid,
+        "Player was flagged by TSA Anticheat."
+);
 ```
 
-This specifically checks the integrity of the TSA challenge/response exchange. It is not a cryptographic proof that a modified client cannot emulate the TSA protocol, and it does not inspect or cryptographically authenticate arbitrary vanilla gameplay packets.
+For the normal TSA integration pattern, Admin Notes should query `TsaAnticheatAPI` and render TSA's current data as a live section rather than creating duplicate notes.
 
 ## Blacklist
 

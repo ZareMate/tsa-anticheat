@@ -36,6 +36,54 @@ Folder resource packs use the same canonical relative-path + file-content hashin
 
 Mod JARs are treated as ZIP files and hashed from their logical entries in sorted order, so changing the JAR filename does not change its hash.
 
+## Packet integrity check
+
+Operators can manually challenge a connected client with:
+
+```
+/tsa packetcheck <player>
+```
+
+Alias:
+
+```
+/tsa checkpacket <player>
+```
+
+The command has player autocomplete and requires permission level 3.
+
+The server sends a fresh random challenge. The client must return the exact challenge plus a SHA-256 response derived from:
+
+```
+tsa-anticheat:packet-integrity:v1|player-uuid|challenge
+```
+
+The server verifies both values and records one of:
+
+```
+PASS
+MODIFIED
+TIMEOUT
+```
+
+A response taking longer than 5 seconds is a timeout.
+
+Results are appended to:
+
+```
+config/tsa_anticheat/<player-uuid>.txt
+```
+
+Example:
+
+```
+2026-09-27T17:30:00Z | PACKET_CHECK | PASS | challenge and response matched
+2026-09-27T17:31:00Z | PACKET_CHECK | MODIFIED | response hash was modified
+2026-09-27T17:32:00Z | PACKET_CHECK | TIMEOUT | no response received within 5 seconds
+```
+
+This checks the integrity of the TSA challenge/response packets. It does not provide cryptographic proof that an arbitrary malicious client is unable to emulate the TSA client logic; a modified client that intentionally implements the expected protocol can still answer correctly.
+
 ## Blacklist
 
 On the first received report the server creates:

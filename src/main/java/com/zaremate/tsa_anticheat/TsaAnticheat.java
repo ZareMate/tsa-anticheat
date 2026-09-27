@@ -54,6 +54,12 @@ public final class TsaAnticheat {
                 PacketIntegrityChallengePayload.STREAM_CODEC,
                 (payload, context) -> handleClientChallenge(payload)
         );
+
+        registrar.playToClient(
+                HashRequestPayload.TYPE,
+                HashRequestPayload.STREAM_CODEC,
+                (payload, context) -> handleClientHashRequest(payload)
+        );
     }
 
     private static void handleClientHashRequest(HashRequestPayload payload) {

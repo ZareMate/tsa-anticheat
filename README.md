@@ -102,6 +102,8 @@ MOD example-mod.jar
 SHA-256: 0123456789abcdef...
 ```
 
+Each generated hash is also saved to `config/tsa_anticheat/generated_hashes.txt`. Duplicate entries are not written twice.
+
 The generated value can be pasted directly into:
 
 ```

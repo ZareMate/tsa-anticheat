@@ -15,6 +15,11 @@ import java.util.Map;
 import java.util.UUID;
 
 final class TsaAnticheatDataAccess {
+    private static final java.util.regex.Pattern DETECTION_PATTERN =
+            java.util.regex.Pattern.compile(
+                    "(?:^|,\\s*)(MOD|RESOURCE_PACK)\\s+(.+?)\\s+\\[([0-9a-fA-F]{64})\\]"
+            );
+
     private static final Path DIRECTORY =
             FMLPaths.CONFIGDIR.get().resolve(TsaAnticheat.MOD_ID);
 

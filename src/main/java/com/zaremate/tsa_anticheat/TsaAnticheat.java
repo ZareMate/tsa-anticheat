@@ -1,5 +1,6 @@
 package com.zaremate.tsa_anticheat;
 
+import com.zaremate.tsa_anticheat.client.PacketIntegrityClient;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.fml.ModContainer;
 import net.neoforged.fml.common.Mod;
@@ -46,7 +47,7 @@ public final class TsaAnticheat {
         registrar.playToClient(
                 PacketIntegrityChallengePayload.TYPE,
                 PacketIntegrityChallengePayload.STREAM_CODEC,
-                null
+                (payload, context) -> PacketIntegrityClient.handleChallenge(payload)
         );
     }
 }

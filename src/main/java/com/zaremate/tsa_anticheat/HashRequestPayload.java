@@ -7,7 +7,7 @@ import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 import net.minecraft.resources.ResourceLocation;
 import net.neoforged.neoforge.network.handling.IPayloadContext;
 
-public record HashRequestPayload(String type, String name) implements CustomPacketPayload {
+public record HashRequestPayload(String kind, String name) implements CustomPacketPayload {
     public static final Type<HashRequestPayload> TYPE =
             new Type<>(ResourceLocation.fromNamespaceAndPath(
                     TsaAnticheat.MOD_ID,
@@ -17,7 +17,7 @@ public record HashRequestPayload(String type, String name) implements CustomPack
     public static final StreamCodec<ByteBuf, HashRequestPayload> STREAM_CODEC =
             StreamCodec.composite(
                     ByteBufCodecs.STRING_UTF8,
-                    HashRequestPayload::type,
+                    HashRequestPayload::kind,
                     ByteBufCodecs.STRING_UTF8,
                     HashRequestPayload::name,
                     HashRequestPayload::new
@@ -29,6 +29,6 @@ public record HashRequestPayload(String type, String name) implements CustomPack
     }
 
     public static void handle(HashRequestPayload payload, IPayloadContext context) {
-        // The client implementation is registered by TsaAnticheat on the client.
+        // Client handling is registered by TsaAnticheat on the client.
     }
 }

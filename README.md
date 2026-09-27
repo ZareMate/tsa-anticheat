@@ -75,7 +75,16 @@ Results are appended to:
 config/tsa_anticheat/<player-uuid>.txt
 ```
 
-Packet results can optionally be sent to a Discord webhook and broadcast to staff/operators. The LuckPerms permission defaults to `tsa_anticheat.alerts`.
+Packet results can optionally be sent to a Discord webhook and broadcast to staff/operators. The default common configuration is:
+
+```toml
+webhook_enabled = false
+webhook_url = ""
+broadcast_permission = "tsa_anticheat.alerts"
+packet_check_timeout_seconds = 5
+```
+
+Set `webhook_enabled = true` and provide `webhook_url` to enable Discord notifications. The packet-integrity response timeout defaults to 5 seconds and can be configured from 1 to 300 seconds.
 
 ## Hash generation command
 

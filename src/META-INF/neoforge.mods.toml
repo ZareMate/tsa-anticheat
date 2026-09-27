@@ -1,0 +1,24 @@
+modLoader="javafml"
+loaderVersion="[4,)"
+license="MIT"
+
+[[mods]]
+modId="tsa-anticheat"
+version="1.3"
+displayName="Xray Snitch"
+authors="lunofe"
+description='''Snitches on players using unauthorized texturepacks/mods on your server'''
+
+[[dependencies.tsa-anticheat]]
+    modId="neoforge"
+    type="required"
+    versionRange="[21.1,)"
+    ordering="NONE"
+    side="BOTH"
+
+[[dependencies.tsa-anticheat]]
+    modId="minecraft"
+    type="required"
+    versionRange="[1.21.1,1.22)"
+    ordering="NONE"
+    side="BOTH"

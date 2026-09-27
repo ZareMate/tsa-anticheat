@@ -1,0 +1,9 @@
+Manifest-Version: 1.0
+Specification-Title: xray_snitch
+Specification-Vendor: lunofe
+Specification-Version: 1
+Implementation-Title: XraySnitch
+Implementation-Version: 1.3
+Implementation-Vendor: lunofe
+Implementation-Timestamp: 2025-12-30T17:36:20+0100
+

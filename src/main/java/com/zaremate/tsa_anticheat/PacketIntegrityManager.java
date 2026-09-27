@@ -21,7 +21,6 @@ import java.util.concurrent.ConcurrentHashMap;
 import net.neoforged.fml.loading.FMLPaths;
 
 public final class PacketIntegrityManager {
-    private static final long TIMEOUT_MILLIS = 5_000L;
     private static final String DOMAIN = "tsa-anticheat:packet-integrity:v1";
     private static final SecureRandom RANDOM = new SecureRandom();
     private static final HexFormat HEX = HexFormat.of();
@@ -59,8 +58,10 @@ public final class PacketIntegrityManager {
 
         long elapsed = System.currentTimeMillis() - pending.createdAt();
 
-        if (elapsed > TIMEOUT_MILLIS) {
-            finish(player, pending, Result.TIMEOUT, "response arrived after 5 seconds");
+        if (elapsed > TsaAnticheatConfig.packetCheckTimeoutMillis()) {
+            finish(player, pending, Result.TIMEOUT,
+                    "response arrived after " +
+                    TsaAnticheatConfig.packetCheckTimeoutText());
             return Result.TIMEOUT;
         }
 
@@ -86,11 +87,13 @@ public final class PacketIntegrityManager {
         PENDING.entrySet().removeIf(entry -> {
             PendingCheck pending = entry.getValue();
 
-            if (now - pending.createdAt() <= TIMEOUT_MILLIS) {
+            if (now - pending.createdAt() <=
+                    TsaAnticheatConfig.packetCheckTimeoutMillis()) {
                 return false;
             }
 
-            String reason = "no response received within 5 seconds";
+            String reason = "no response received within " +
+                    TsaAnticheatConfig.packetCheckTimeoutText();
             writeResult(pending.playerName(), entry.getKey(), Result.TIMEOUT, reason);
             publishResult(pending.playerName(), entry.getKey(), Result.TIMEOUT, reason, pending.requester());
             return true;

@@ -10,6 +10,8 @@ import java.security.NoSuchAlgorithmException;
 import java.util.Comparator;
 import java.util.HexFormat;
 import java.util.List;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipFile;
 import java.util.stream.Stream;
 
 public final class ResourcePackHasher {
@@ -19,27 +21,53 @@ public final class ResourcePackHasher {
     }
 
     public static String hash(Path resourcePack) throws IOException {
-        if (Files.isRegularFile(resourcePack)) {
-            return hashFile(resourcePack);
-        }
-
         if (Files.isDirectory(resourcePack)) {
             return hashDirectory(resourcePack);
+        }
+
+        if (Files.isRegularFile(resourcePack)) {
+            return hashZipOrFile(resourcePack);
         }
 
         throw new IOException("Unsupported resource pack: " + resourcePack);
     }
 
-    private static String hashFile(Path file) throws IOException {
+    private static String hashZipOrFile(Path file) throws IOException {
+        try (ZipFile zip = new ZipFile(file.toFile())) {
+            return hashZip(zip);
+        } catch (java.util.zip.ZipException notZip) {
+            // Keep support for any regular resource-pack file by hashing its bytes.
+            return hashRawFile(file);
+        }
+    }
+
+    private static String hashZip(ZipFile zip) throws IOException {
+        MessageDigest digest = sha256();
+
+        List<? extends ZipEntry> entries = zip.stream()
+                .filter(entry -> !entry.isDirectory())
+                .sorted(Comparator.comparing(ZipEntry::getName))
+                .toList();
+
+        for (ZipEntry entry : entries) {
+            digest.update(entry.getName().getBytes(StandardCharsets.UTF_8));
+            digest.update((byte) 0);
+
+            try (InputStream input = zip.getInputStream(entry)) {
+                updateDigest(digest, input);
+            }
+
+            digest.update((byte) 0);
+        }
+
+        return HEX.formatHex(digest.digest());
+    }
+
+    private static String hashRawFile(Path file) throws IOException {
         MessageDigest digest = sha256();
 
         try (InputStream input = Files.newInputStream(file)) {
-            byte[] buffer = new byte[8192];
-            int read;
-
-            while ((read = input.read(buffer)) != -1) {
-                digest.update(buffer, 0, read);
-            }
+            updateDigest(digest, input);
         }
 
         return HEX.formatHex(digest.digest());
@@ -66,18 +94,22 @@ public final class ResourcePackHasher {
             digest.update((byte) 0);
 
             try (InputStream input = Files.newInputStream(file)) {
-                byte[] buffer = new byte[8192];
-                int read;
-
-                while ((read = input.read(buffer)) != -1) {
-                    digest.update(buffer, 0, read);
-                }
+                updateDigest(digest, input);
             }
 
             digest.update((byte) 0);
         }
 
         return HEX.formatHex(digest.digest());
+    }
+
+    private static void updateDigest(MessageDigest digest, InputStream input) throws IOException {
+        byte[] buffer = new byte[8192];
+        int read;
+
+        while ((read = input.read(buffer)) != -1) {
+            digest.update(buffer, 0, read);
+        }
     }
 
     private static MessageDigest sha256() {

@@ -17,35 +17,42 @@ public final class ClientEvents {
 
     @SubscribeEvent
     public static void onLoggingIn(ClientPlayerNetworkEvent.LoggingIn event) {
-        Path resourcePacks = Minecraft.getInstance().gameDirectory.toPath().resolve("resourcepacks");
-
-        if (!Files.isDirectory(resourcePacks)) {
-            return;
-        }
+        Path gameDirectory = Minecraft.getInstance().gameDirectory.toPath();
 
         List<String> reports = new ArrayList<>();
 
-        try (var stream = Files.list(resourcePacks)) {
-            stream.forEach(resourcePack -> {
-                try {
-                    String hash = ResourcePackHasher.hash(resourcePack);
-                    String name = resourcePack.getFileName().toString();
-
-                    // The name is sent for human-readable reporting, but the
-                    // server's detection decision is based only on the hash.
-                    reports.add(name + "|" + hash);
-                } catch (Exception ignored) {
-                    // Ignore unreadable/invalid resource packs.
-                }
-            });
-        } catch (Exception ignored) {
-            return;
-        }
+        scanDirectory(gameDirectory.resolve("resourcepacks"), "RESOURCE_PACK", reports);
+        scanDirectory(gameDirectory.resolve("mods"), "MOD", reports);
 
         if (!reports.isEmpty()) {
             PacketDistributor.sendToServer(
                     new XrayReportPayload(String.join("\n", reports))
             );
+        }
+    }
+
+    private static void scanDirectory(Path directory, String type, List<String> reports) {
+        if (!Files.isDirectory(directory)) {
+            return;
+        }
+
+        try (var stream = Files.list(directory)) {
+            stream.forEach(entry -> {
+                try {
+                    // Mods are normally JARs; resource packs can be ZIP files
+                    // or directories. The hasher supports both.
+                    String hash = ResourcePackHasher.hash(entry);
+                    String name = entry.getFileName().toString();
+
+                    // Detection is performed by the server using only the hash.
+                    // The type and name are included for readable reports.
+                    reports.add(type + "\t" + name + "\t" + hash);
+                } catch (Exception ignored) {
+                    // Ignore unreadable/invalid entries.
+                }
+            });
+        } catch (Exception ignored) {
+            // Ignore inaccessible directories.
         }
     }
 }

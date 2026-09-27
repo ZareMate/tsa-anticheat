@@ -9,7 +9,7 @@ import net.minecraft.server.level.ServerPlayer;
 import net.neoforged.neoforge.network.handling.IPayloadContext;
 
 public record HashResponsePayload(
-        String type,
+        String kind,
         String requestedName,
         String results,
         int failed
@@ -23,7 +23,7 @@ public record HashResponsePayload(
     public static final StreamCodec<ByteBuf, HashResponsePayload> STREAM_CODEC =
             StreamCodec.composite(
                     ByteBufCodecs.STRING_UTF8,
-                    HashResponsePayload::type,
+                    HashResponsePayload::kind,
                     ByteBufCodecs.STRING_UTF8,
                     HashResponsePayload::requestedName,
                     ByteBufCodecs.STRING_UTF8,

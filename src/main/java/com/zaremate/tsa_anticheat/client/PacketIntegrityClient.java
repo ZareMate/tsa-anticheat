@@ -42,7 +42,7 @@ public final class PacketIntegrityClient {
         var minecraft = Minecraft.getInstance();
         Path gameDirectory = minecraft.gameDirectory.toPath();
 
-        Path directory = switch (payload.type()) {
+        Path directory = switch (payload.kind()) {
             case "MOD" -> gameDirectory.resolve("mods");
             case "RESOURCE_PACK" -> gameDirectory.resolve("resourcepacks");
             default -> null;
@@ -114,7 +114,7 @@ public final class PacketIntegrityClient {
     ) {
         PacketDistributor.sendToServer(
                 new HashResponsePayload(
-                        payload.type(),
+                        payload.kind(),
                         payload.name(),
                         String.join("\n", results),
                         failed

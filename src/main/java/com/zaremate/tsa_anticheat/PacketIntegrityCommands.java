@@ -1,26 +1,15 @@
 package com.zaremate.tsa_anticheat;
 
-import com.mojang.brigadier.CommandDispatcher;
-import com.mojang.brigadier.arguments.StringArgumentType;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
-import net.minecraft.commands.SharedSuggestionProvider;
 import net.minecraft.commands.arguments.EntityArgument;
-import com.mojang.brigadier.suggestion.Suggestions;
-import com.mojang.brigadier.suggestion.SuggestionsBuilder;
-import com.zaremate.tsa_anticheat.client.ResourcePackHasher;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
 import net.neoforged.bus.api.SubscribeEvent;
-import net.neoforged.fml.loading.FMLPaths;
 import net.neoforged.neoforge.event.RegisterCommandsEvent;
 
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.StandardOpenOption;
 import java.util.UUID;
-import java.util.concurrent.CompletableFuture;
+
 
 public final class PacketIntegrityCommands {
     private PacketIntegrityCommands() {
@@ -56,40 +45,31 @@ public final class PacketIntegrityCommands {
                         .then(Commands.literal("hash")
                                 .then(Commands.literal("mod")
                                         .then(Commands.literal("*")
-                                        .executes(context -> hashAllEntries(
-                                                context.getSource(),
-                                                "MOD",
-                                                FMLPaths.GAMEDIR.get().resolve("mods")
-                                        )))
-                                .then(Commands.argument("name", StringArgumentType.string())
-                                        .suggests((context, builder) ->
-                                                suggestEntries(builder, FMLPaths.GAMEDIR.get().resolve("mods")))
-                                        .executes(context -> hashEntry(
-                                                context.getSource(),
-                                                "MOD",
-                                                FMLPaths.GAMEDIR.get().resolve("mods"),
-                                                StringArgumentType.getString(context, "name")
-                                        )))
+                                                .executes(context -> startHash(
+                                                        context.getSource(),
+                                                        "MOD",
+                                                        "*"
+                                                )))
+                                        .then(Commands.argument("name", StringArgumentType.string())
+                                                .executes(context -> startHash(
+                                                        context.getSource(),
+                                                        "MOD",
+                                                        StringArgumentType.getString(context, "name")
+                                                )))
                                 )
                                 .then(Commands.literal("resourcepack")
                                         .then(Commands.literal("*")
-                                        .executes(context -> hashAllEntries(
-                                                context.getSource(),
-                                                "RESOURCE_PACK",
-                                                FMLPaths.GAMEDIR.get().resolve("resourcepacks")
-                                        )))
-                                .then(Commands.argument("name", StringArgumentType.string())
-                                        .suggests((context, builder) ->
-                                                suggestEntries(
-                                                        builder,
-                                                        FMLPaths.GAMEDIR.get().resolve("resourcepacks")
-                                                ))
-                                        .executes(context -> hashEntry(
-                                                context.getSource(),
-                                                "RESOURCE_PACK",
-                                                FMLPaths.GAMEDIR.get().resolve("resourcepacks"),
-                                                StringArgumentType.getString(context, "name")
-                                        )))
+                                                .executes(context -> startHash(
+                                                        context.getSource(),
+                                                        "RESOURCE_PACK",
+                                                        "*"
+                                                )))
+                                        .then(Commands.argument("name", StringArgumentType.string())
+                                                .executes(context -> startHash(
+                                                        context.getSource(),
+                                                        "RESOURCE_PACK",
+                                                        StringArgumentType.getString(context, "name")
+                                                )))
                                 )
                         )
         );
@@ -113,132 +93,31 @@ public final class PacketIntegrityCommands {
         return 1;
     }
 
-    private static int hashAllEntries(
+    private static int startHash(
             CommandSourceStack source,
             String type,
-            Path directory
+            String name
     ) {
-        if (!Files.isDirectory(directory)) {
+        if (!(source.getEntity() instanceof ServerPlayer player)) {
             source.sendFailure(
                     Component.literal(
-                            "Directory not found: " + directory
+                            "This command must be run by a player with TSA Anticheat installed."
                     )
             );
             return 0;
         }
 
-        int hashed = 0;
-        int failed = 0;
-
-        try (var stream = Files.list(directory)) {
-            var entries = stream
-                    .sorted()
-                    .toList();
-
-            for (Path entry : entries) {
-                if (!Files.exists(entry)) {
-                    continue;
-                }
-
-                try {
-                    String hash = ResourcePackHasher.hash(entry);
-                    saveGeneratedHash(
-                            type,
-                            entry.getFileName().toString(),
-                            hash
-                    );
-                    hashed++;
-                } catch (Exception exception) {
-                    failed++;
-                    TsaAnticheat.LOGGER.warn(
-                            "Failed to hash {} {}",
-                            type,
-                            entry,
-                            exception
-                    );
-                }
-            }
-        } catch (Exception exception) {
-            TsaAnticheat.LOGGER.warn(
-                    "Failed to list {} directory {}",
-                    type,
-                    directory,
-                    exception
-            );
-            source.sendFailure(
-                    Component.literal(
-                            "Failed to read " + type.toLowerCase() + " directory."
-                    )
-            );
-            return 0;
-        }
-
-        int finalHashed = hashed;
-        int finalFailed = failed;
+        TsaHashManager.start(player, type, name);
 
         source.sendSuccess(
                 () -> Component.literal(
-                        "Hashed " + finalHashed + " " + type.toLowerCase()
-                                + (finalHashed == 1 ? "" : "s")
-                                + (finalFailed > 0
-                                ? " (" + finalFailed + " failed)"
-                                : "")
-                                + "\nSaved to config/tsa_anticheat/generated_hashes.txt"
+                        "Requested local " + type.toLowerCase() +
+                        ("*".equals(name) ? " hash scan." : " hash for " + name + ".")
                 ),
                 false
         );
 
-        return hashed;
-    }
-
-    private static int hashEntry(
-            CommandSourceStack source,
-            String type,
-            Path directory,
-            String name
-    ) {
-        Path entry = directory.resolve(name);
-
-        if (!entry.normalize().startsWith(directory.normalize())
-                || !Files.exists(entry)) {
-            source.sendFailure(
-                    Component.literal(
-                            "Could not find " + type.toLowerCase() + ": " + name
-                    )
-            );
-            return 0;
-        }
-
-        try {
-            String hash = ResourcePackHasher.hash(entry);
-            saveGeneratedHash(type, name, hash);
-
-            source.sendSuccess(
-                    () -> Component.literal(
-                            type + " " + name
-                                    + "\nSHA-256: " + hash
-                                    + "\nSaved to config/tsa_anticheat/generated_hashes.txt"
-                    ),
-                    false
-            );
-
-            return 1;
-        } catch (Exception exception) {
-            TsaAnticheat.LOGGER.warn(
-                    "Failed to hash {} {}",
-                    type,
-                    entry,
-                    exception
-            );
-
-            source.sendFailure(
-                    Component.literal(
-                            "Failed to hash " + type.toLowerCase()
-                                    + " '" + name + "'."
-                    )
-            );
-            return 0;
-        }
+        return 1;
     }
 
     private static void saveGeneratedHash(

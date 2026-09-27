@@ -43,11 +43,37 @@ public final class TsaAnticheat {
                 PacketIntegrityResponsePayload::handle
         );
 
+        registrar.playToServer(
+                HashResponsePayload.TYPE,
+                HashResponsePayload.STREAM_CODEC,
+                HashResponsePayload::handle
+        );
+
         registrar.playToClient(
                 PacketIntegrityChallengePayload.TYPE,
                 PacketIntegrityChallengePayload.STREAM_CODEC,
                 (payload, context) -> handleClientChallenge(payload)
         );
+    }
+
+    private static void handleClientHashRequest(HashRequestPayload payload) {
+        try {
+            Class<?> handler = Class.forName(
+                    "com.zaremate.tsa_anticheat.client.PacketIntegrityClient"
+            );
+
+            handler.getMethod(
+                    "handleHashRequest",
+                    HashRequestPayload.class
+            ).invoke(null, payload);
+        } catch (ClassNotFoundException ignored) {
+            // Client-only handler is not present on a dedicated server.
+        } catch (ReflectiveOperationException exception) {
+            LOGGER.warn(
+                    "Failed to dispatch local hash request to the client handler.",
+                    exception
+            );
+        }
     }
 
     private static void handleClientChallenge(PacketIntegrityChallengePayload payload) {

@@ -42,6 +42,11 @@ public final class PacketIntegrityClient {
         var minecraft = Minecraft.getInstance();
         Path gameDirectory = minecraft.gameDirectory.toPath();
 
+        if ("DETECTION".equals(payload.kind())) {
+            handleDetectionRequest(gameDirectory, payload);
+            return;
+        }
+
         Path directory = switch (payload.kind()) {
             case "MOD" -> gameDirectory.resolve("mods");
             case "RESOURCE_PACK" -> gameDirectory.resolve("resourcepacks");
@@ -105,6 +110,70 @@ public final class PacketIntegrityClient {
         }
 
         sendHashResponse(payload, results, failed);
+    }
+
+    private static void handleDetectionRequest(
+            Path gameDirectory,
+            HashRequestPayload payload
+    ) {
+        List<String> results = new ArrayList<>();
+        int failed = 0;
+
+        failed += scanDetectionDirectory(
+                gameDirectory.resolve("mods"),
+                "MOD",
+                results
+        );
+
+        failed += scanDetectionDirectory(
+                gameDirectory.resolve("resourcepacks"),
+                "RESOURCE_PACK",
+                results
+        );
+
+        sendHashResponse(payload, results, failed);
+    }
+
+    private static int scanDetectionDirectory(
+            Path directory,
+            String type,
+            List<String> results
+    ) {
+        if (!Files.isDirectory(directory)) {
+            return 0;
+        }
+
+        int failed = 0;
+
+        try (var stream = Files.list(directory)) {
+            var entries = stream
+                    .sorted(Comparator.comparing(path ->
+                            path.getFileName().toString()))
+                    .toList();
+
+            for (Path entry : entries) {
+                try {
+                    if (!Files.exists(entry)) {
+                        failed++;
+                        continue;
+                    }
+
+                    String hash = ResourcePackHasher.hash(entry);
+
+                    results.add(
+                            type + "\t" +
+                            entry.getFileName() + "\t" +
+                            hash
+                    );
+                } catch (Exception exception) {
+                    failed++;
+                }
+            }
+        } catch (Exception exception) {
+            failed++;
+        }
+
+        return failed;
     }
 
     private static void sendHashResponse(

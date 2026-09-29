@@ -90,6 +90,23 @@ Set `webhook_enabled = true` and provide `webhook_url` to enable Discord notific
 
 
 The `command_permission` controls access to all `/tsa` commands. Players with permission level 3 always have access. By default, grant the LuckPerms node `tsa_anticheat.command`.
+## Current detection command
+
+Staff can force an immediate client-side scan of a connected player:
+
+```
+/tsa detect <player>
+```
+
+The scan checks the player's current `mods/` and `resourcepacks/` directories against the server blacklist.
+
+- A clean result is shown to the command requester and staff with `tsa_anticheat.alerts`.
+- Detected entries are shown with their type, filename, and SHA-256 hash.
+- Detected results are saved to the player's TSA report.
+- Detected results are sent to the configured Discord webhook.
+- Clean results do not send a webhook.
+- The command uses the same `tsa_anticheat.command` permission as the other `/tsa` commands.
+
 ## Hash generation command
 
 Operators can generate the same deterministic SHA-256 hashes used by TSA's client scanner from the **local files of the player executing the command**.

@@ -9,6 +9,9 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
+import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
@@ -27,13 +30,29 @@ public final class TsaHashManager {
     ) {
         PENDING.put(
                 player.getUUID(),
-                new PendingRequest(type, name)
+                new PendingRequest(type, name, null)
         );
 
         PacketDistributor.sendToPlayer(
                 player,
                 new HashRequestPayload(type, name)
         );
+    }
+
+    public static boolean startDetection(ServerPlayer player, UUID requester) {
+        if (PENDING.putIfAbsent(
+                player.getUUID(),
+                new PendingRequest("DETECTION", "CURRENT", requester)
+        ) != null) {
+            return false;
+        }
+
+        PacketDistributor.sendToPlayer(
+                player,
+                new HashRequestPayload("DETECTION", "CURRENT")
+        );
+
+        return true;
     }
 
     public static void handleResponse(
@@ -51,6 +70,11 @@ public final class TsaHashManager {
             player.sendSystemMessage(
                     Component.literal("[TSA] Ignored invalid hash response.")
             );
+            return;
+        }
+
+        if ("DETECTION".equals(pending.type())) {
+            handleDetectionResponse(player, pending.requester(), response);
             return;
         }
 
@@ -128,6 +152,185 @@ public final class TsaHashManager {
         }
     }
 
+    private static void handleDetectionResponse(
+            ServerPlayer target,
+            UUID requester,
+            HashResponsePayload response
+    ) {
+        List<String> detections = new ArrayList<>();
+
+        for (String line : response.results().split("\\R")) {
+            if (line.isBlank()) {
+                continue;
+            }
+
+            int firstSeparator = line.indexOf('\t');
+            int lastSeparator = line.lastIndexOf('\t');
+
+            if (firstSeparator <= 0
+                    || lastSeparator <= firstSeparator
+                    || lastSeparator == line.length() - 1) {
+                continue;
+            }
+
+            String type = line.substring(0, firstSeparator).trim();
+            String name = line.substring(firstSeparator + 1, lastSeparator);
+            String hash = line.substring(lastSeparator + 1).trim().toLowerCase();
+
+            if (!("MOD".equals(type) || "RESOURCE_PACK".equals(type))
+                    || !hash.matches("[0-9a-f]{64}")) {
+                continue;
+            }
+
+            if (isBlacklisted(hash)) {
+                detections.add(
+                        type + " " + name + " [" + hash + "]"
+                );
+            }
+        }
+
+        String playerName = target.getGameProfile().getName();
+
+        if (detections.isEmpty()) {
+            notifyDetectionResult(
+                    requester,
+                    playerName + " is clean. No blacklisted mods or resource packs detected."
+            );
+            broadcastDetection(
+                    playerName + " is clean. No blacklisted mods or resource packs detected."
+            );
+            return;
+        }
+
+        writeDetectionReport(target, detections);
+
+        StringBuilder message = new StringBuilder()
+                .append(playerName)
+                .append(" has ")
+                .append(detections.size())
+                .append(" detection")
+                .append(detections.size() == 1 ? "" : "s")
+                .append(":");
+
+        for (String detection : detections) {
+            message.append("\n- ").append(detection);
+        }
+
+        String result = message.toString();
+
+        notifyDetectionResult(requester, "[TSA Anticheat] " + result);
+        broadcastDetection("[TSA Anticheat] " + result);
+        DiscordWebhook.sendDetection(
+                playerName,
+                target.getUUID().toString(),
+                detections
+        );
+    }
+
+    private static boolean isBlacklisted(String hash) {
+        Path directory = FMLPaths.CONFIGDIR.get().resolve(TsaAnticheat.MOD_ID);
+        Path hashesFile = directory.resolve("blacklisted_hashes.txt");
+
+        try {
+            if (Files.notExists(hashesFile)) {
+                return false;
+            }
+
+            for (String line : Files.readAllLines(
+                    hashesFile,
+                    StandardCharsets.UTF_8
+            )) {
+                String candidate = line.trim().toLowerCase();
+
+                if (candidate.equals(hash)) {
+                    return true;
+                }
+            }
+        } catch (Exception exception) {
+            TsaAnticheat.LOGGER.warn(
+                    "Failed to read TSA Anticheat blacklist.",
+                    exception
+            );
+        }
+
+        return false;
+    }
+
+    private static void writeDetectionReport(
+            ServerPlayer player,
+            List<String> detections
+    ) {
+        Path directory =
+                FMLPaths.CONFIGDIR.get().resolve(TsaAnticheat.MOD_ID);
+        Path file = directory.resolve(player.getUUID() + ".txt");
+
+        String line = LocalDate.now() +
+                " | DETECTED | " +
+                String.join(", ", detections);
+
+        try {
+            Files.createDirectories(directory);
+
+            Files.writeString(
+                    file,
+                    line + System.lineSeparator(),
+                    StandardCharsets.UTF_8,
+                    StandardOpenOption.CREATE,
+                    StandardOpenOption.APPEND
+            );
+        } catch (Exception exception) {
+            TsaAnticheat.LOGGER.warn(
+                    "Failed to write TSA Anticheat detection report for {}",
+                    player.getGameProfile().getName(),
+                    exception
+            );
+        }
+    }
+
+    private static void notifyDetectionResult(
+            UUID requester,
+            String message
+    ) {
+        if (requester == null) {
+            return;
+        }
+
+        var server =
+                net.neoforged.neoforge.server.ServerLifecycleHooks
+                        .getCurrentServer();
+
+        if (server == null) {
+            return;
+        }
+
+        ServerPlayer requesterPlayer =
+                server.getPlayerList().getPlayer(requester);
+
+        if (requesterPlayer != null) {
+            requesterPlayer.sendSystemMessage(
+                    Component.literal(message)
+            );
+        }
+    }
+
+    private static void broadcastDetection(String message) {
+        var server =
+                net.neoforged.neoforge.server.ServerLifecycleHooks
+                        .getCurrentServer();
+
+        if (server == null) {
+            return;
+        }
+
+        for (ServerPlayer player : server.getPlayerList().getPlayers()) {
+            if (TsaPermissions.hasBroadcastPermission(player)) {
+                player.sendSystemMessage(
+                        Component.literal(message)
+                );
+            }
+        }
+    }
+
     private static void saveGeneratedHash(
             String type,
             String name,
@@ -167,6 +370,10 @@ public final class TsaHashManager {
         );
     }
 
-    private record PendingRequest(String type, String name) {
+    private record PendingRequest(
+            String type,
+            String name,
+            UUID requester
+    ) {
     }
 }

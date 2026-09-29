@@ -127,6 +127,75 @@ public final class DiscordWebhook {
         }
     }
 
+    public static void sendDetection(
+            String player,
+            String uuid,
+            List<String> detections
+    ) {
+        String url = TsaAnticheatConfig.webhookUrl();
+
+        if (!TsaAnticheatConfig.WEBHOOK_ENABLED.get()
+                || url.isBlank()
+                || detections == null
+                || detections.isEmpty()) {
+            return;
+        }
+
+        StringBuilder details = new StringBuilder();
+        for (String detection : detections) {
+            if (details.length() > 0) {
+                details.append("\n");
+            }
+            details.append("- ").append(escapeMarkdown(detection));
+        }
+
+        String description = "Player: **" + escapeMarkdown(player) + "**\n"
+                + "UUID: `" + escapeMarkdown(uuid) + "`\n"
+                + "Check: **CURRENT DETECTION SCAN**\n"
+                + "Status: **DETECTED**\n\n"
+                + details;
+
+        String json = "{"
+                + "\"username\":\"TSA Anticheat\","
+                + "\"embeds\":[{"
+                + "\"title\":\"TSA Anticheat detection\","
+                + "\"description\":\"" + escapeJson(description) + "\","
+                + "\"color\":" + colorFor("DETECTED")
+                + "}]"
+                + "}";
+
+        try {
+            HttpRequest request = HttpRequest.newBuilder()
+                    .uri(URI.create(url))
+                    .header("Content-Type", "application/json")
+                    .POST(HttpRequest.BodyPublishers.ofString(json))
+                    .build();
+
+            CLIENT.sendAsync(request, HttpResponse.BodyHandlers.discarding())
+                    .thenAccept(response -> {
+                        if (response.statusCode() < 200
+                                || response.statusCode() >= 300) {
+                            TsaAnticheat.LOGGER.warn(
+                                    "Discord webhook returned HTTP {}",
+                                    response.statusCode()
+                            );
+                        }
+                    })
+                    .exceptionally(error -> {
+                        TsaAnticheat.LOGGER.warn(
+                                "Discord webhook failed: {}",
+                                error.getMessage()
+                        );
+                        return null;
+                    });
+        } catch (Exception exception) {
+            TsaAnticheat.LOGGER.warn(
+                    "Invalid Discord webhook URL: {}",
+                    exception.getMessage()
+            );
+        }
+    }
+
     private static int colorFor(String status) {
         return switch (status.toUpperCase(Locale.ROOT)) {
             case "PASS" -> 3066993;

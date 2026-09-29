@@ -43,6 +43,13 @@ public final class PacketIntegrityCommands {
                                                 )
                                         )))
                         )
+                        .then(Commands.literal("detect")
+                                .then(Commands.argument("player", EntityArgument.player())
+                                        .executes(context -> startDetection(
+                                                context.getSource(),
+                                                EntityArgument.getPlayer(context, "player")
+                                        )))
+                        )
                         .then(Commands.literal("hash")
                                 .then(Commands.literal("mod")
                                         .then(Commands.literal("*")
@@ -101,6 +108,32 @@ public final class PacketIntegrityCommands {
                         target.getGameProfile().getName()
                 ),
                 true
+        );
+
+        return 1;
+    }
+
+    private static int startDetection(CommandSourceStack source, ServerPlayer target) {
+        UUID requester = source.getEntity() instanceof ServerPlayer player
+                ? player.getUUID()
+                : null;
+
+        if (!TsaHashManager.startDetection(target, requester)) {
+            source.sendFailure(
+                    Component.literal(
+                            "A detection scan is already pending for " +
+                            target.getGameProfile().getName() + "."
+                    )
+            );
+            return 0;
+        }
+
+        source.sendSuccess(
+                () -> Component.literal(
+                        "Started detection scan for " +
+                        target.getGameProfile().getName()
+                ),
+                false
         );
 
         return 1;

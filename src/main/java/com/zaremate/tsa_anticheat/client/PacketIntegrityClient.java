@@ -13,8 +13,17 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 public final class PacketIntegrityClient {
+    private static final ExecutorService HASH_EXECUTOR =
+            Executors.newSingleThreadExecutor(runnable -> {
+                Thread thread = new Thread(runnable, "TSA Anticheat Hash Worker");
+                thread.setDaemon(true);
+                return thread;
+            });
+
     private PacketIntegrityClient() {}
 
     public static void handleChallenge(PacketIntegrityChallengePayload payload) {
@@ -42,11 +51,40 @@ public final class PacketIntegrityClient {
         var minecraft = Minecraft.getInstance();
         Path gameDirectory = minecraft.gameDirectory.toPath();
 
+        HASH_EXECUTOR.execute(() -> processHashRequest(
+                minecraft,
+                gameDirectory,
+                payload
+        ));
+    }
+
+    private static void processHashRequest(
+            Minecraft minecraft,
+            Path gameDirectory,
+            HashRequestPayload payload
+    ) {
+        List<String> results = new ArrayList<>();
+        int failed;
+
         if ("DETECTION".equals(payload.kind())) {
-            handleDetectionRequest(gameDirectory, payload);
-            return;
+            failed = handleDetectionRequest(gameDirectory, results);
+        } else {
+            failed = handleSingleHashRequest(gameDirectory, payload, results);
         }
 
+        int finalFailed = failed;
+        minecraft.execute(() -> {
+            if (minecraft.getConnection() != null) {
+                sendHashResponse(payload, results, finalFailed);
+            }
+        });
+    }
+
+    private static int handleSingleHashRequest(
+            Path gameDirectory,
+            HashRequestPayload payload,
+            List<String> results
+    ) {
         Path directory = switch (payload.kind()) {
             case "MOD" -> gameDirectory.resolve("mods");
             case "RESOURCE_PACK" -> gameDirectory.resolve("resourcepacks");
@@ -54,11 +92,9 @@ public final class PacketIntegrityClient {
         };
 
         if (directory == null || !Files.isDirectory(directory)) {
-            sendHashResponse(payload, List.of(), 1);
-            return;
+            return 1;
         }
 
-        List<String> results = new ArrayList<>();
         int failed = 0;
 
         try {
@@ -109,14 +145,13 @@ public final class PacketIntegrityClient {
             failed++;
         }
 
-        sendHashResponse(payload, results, failed);
+        return failed;
     }
 
-    private static void handleDetectionRequest(
+    private static int handleDetectionRequest(
             Path gameDirectory,
-            HashRequestPayload payload
+            List<String> results
     ) {
-        List<String> results = new ArrayList<>();
         int failed = 0;
 
         failed += scanDetectionDirectory(
@@ -131,7 +166,7 @@ public final class PacketIntegrityClient {
                 results
         );
 
-        sendHashResponse(payload, results, failed);
+        return failed;
     }
 
     private static int scanDetectionDirectory(

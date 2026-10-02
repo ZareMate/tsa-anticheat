@@ -38,6 +38,7 @@ neoForge {
 
 dependencies {
     compileOnly "net.luckperms:api:5.5"
+    compileOnly "org.eclipse.jdt:org.eclipse.jdt.annotation:2.4.0"
 }
 
 tasks.withType(JavaCompile).configureEach {

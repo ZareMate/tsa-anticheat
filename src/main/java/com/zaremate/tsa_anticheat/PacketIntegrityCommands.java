@@ -63,7 +63,25 @@ public final class PacketIntegrityCommands {
                                                         StringArgumentType.getString(context, "name")
                                                 )))
                                 )
-                                .then(Commands.literal("hash")
+                                .then(Commands.literal("keyword")
+                                .then(Commands.literal("list")
+                                        .executes(context -> listKeywords(context.getSource())))
+                                .then(Commands.literal("add")
+                                        .then(Commands.argument("keyword", StringArgumentType.word())
+                                                .executes(context -> addKeyword(
+                                                        context.getSource(),
+                                                        StringArgumentType.getString(context, "keyword")
+                                                )))
+                                )
+                                .then(Commands.literal("remove")
+                                        .then(Commands.argument("keyword", StringArgumentType.word())
+                                                .executes(context -> removeKeyword(
+                                                        context.getSource(),
+                                                        StringArgumentType.getString(context, "keyword")
+                                                )))
+                                )
+                        )
+                        .then(Commands.literal("hash")
                                         .then(Commands.argument("hash", StringArgumentType.word())
                                                 .executes(context -> allowHash(
                                                         context.getSource(),
@@ -114,6 +132,57 @@ public final class PacketIntegrityCommands {
                                 )
                         )
         );
+    }
+
+    private static int listKeywords(CommandSourceStack source) {
+        java.util.List<String> keywords = TsaAnticheatConfig.filenameDetectionKeywords();
+        source.sendSuccess(
+                () -> Component.literal(
+                        keywords.isEmpty()
+                                ? "Filename detection keywords: none"
+                                : "Filename detection keywords: " + String.join(", ", keywords)
+                ),
+                false
+        );
+        return 1;
+    }
+
+    private static int addKeyword(CommandSourceStack source, String keyword) {
+        String sanitized = TsaFilenameDetection.sanitizeFilename(keyword);
+        if (sanitized.isEmpty()) {
+            source.sendFailure(Component.literal("Keyword cannot be empty after sanitization."));
+            return 0;
+        }
+        if (!TsaAnticheatConfig.addFilenameDetectionKeyword(keyword)) {
+            source.sendFailure(Component.literal(
+                    "Keyword is already configured or could not be saved: " + sanitized
+            ));
+            return 0;
+        }
+        source.sendSuccess(
+                () -> Component.literal("Added filename detection keyword: " + sanitized),
+                true
+        );
+        return 1;
+    }
+
+    private static int removeKeyword(CommandSourceStack source, String keyword) {
+        String sanitized = TsaFilenameDetection.sanitizeFilename(keyword);
+        if (sanitized.isEmpty()) {
+            source.sendFailure(Component.literal("Keyword cannot be empty after sanitization."));
+            return 0;
+        }
+        if (!TsaAnticheatConfig.removeFilenameDetectionKeyword(keyword)) {
+            source.sendFailure(Component.literal(
+                    "Keyword is not configured or could not be removed: " + sanitized
+            ));
+            return 0;
+        }
+        source.sendSuccess(
+                () -> Component.literal("Removed filename detection keyword: " + sanitized),
+                true
+        );
+        return 1;
     }
 
     private static int allowValue(

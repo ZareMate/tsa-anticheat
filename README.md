@@ -227,6 +227,18 @@ AdminNotesIntegration.addSystemNote(
 
 For the normal TSA integration pattern, Admin Notes should query `TsaAnticheatAPI` and render TSA's current data as a live section rather than creating duplicate notes.
 
+## Filename keyword commands
+
+Staff can manage filename detection keywords in-game without editing the config file:
+
+```text
+/tsa keyword list
+/tsa keyword add <keyword>
+/tsa keyword remove <keyword>
+```
+
+Keywords are sanitized using the same rules as filename detection. For example, adding `x-ray` stores and matches it as `xray`. Changes are saved directly to `config/tsa-anticheat-common.toml`.
+
 ## Allow command
 
 Staff can permanently allow a filename or SHA-256 hash with:

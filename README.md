@@ -22,7 +22,7 @@ RESOURCE_PACK\tXrayPack.zip\t012345...
 MOD\tsome-cheat-mod.jar\tabcdef...
 ```
 
-The server evaluates both the SHA-256 hash and the filename. Before the filename rule is checked, the name is Unicode-normalized, converted to lowercase, and sanitized to ASCII letters and digits only. If the sanitized filename contains \`ray\`, TSA reports it as a filename-based detection and automatically adds that SHA-256 hash to \`config/tsa_anticheat/blacklisted_hashes.txt\`.
+The server evaluates both the SHA-256 hash and the filename. Before filename rules are checked, the name is Unicode-normalized, converted to lowercase, and sanitized to ASCII letters and digits only. TSA then checks the sanitized filename against the configurable \`filename_detection_keywords\` list. A matching keyword is reported as a filename-based detection and the observed SHA-256 hash is automatically added to \`config/tsa_anticheat/blacklisted_hashes.txt\`.
 
 Renaming a pack or mod does not bypass a hash blacklist entry. A legitimate file whose name contains \`ray\` can be exempted with the filename allowlist below.
 
@@ -36,9 +36,21 @@ Folder resource packs use the same canonical relative-path + file-content hashin
 
 Mod JARs are treated as ZIP files and hashed from their logical entries in sorted order, so changing the JAR filename does not change its hash.
 
-## Ray filename detection
+## Configurable filename detection
 
-TSA also detects entries whose sanitized filename contains \`ray\`. Sanitization is case-insensitive and removes punctuation, spaces, underscores, hyphens, dots, and other non-alphanumeric characters before the substring check.
+TSA detects entries whose sanitized filename contains any configured keyword. Sanitization is case-insensitive and removes punctuation, spaces, underscores, hyphens, dots, and other non-alphanumeric characters before the substring check.
+
+Keywords are configured in \`config/tsa_anticheat-common.toml\`:
+
+```toml
+filename_detection_keywords = [
+    "ray",
+    "xray",
+    "cheat"
+]
+```
+
+Add or remove keywords in this list without updating the mod. Each keyword is sanitized using the same rules as filenames, and matching is performed as a substring check against the sanitized filename.
 
 The allowlist is configured in \`config/tsa_anticheat-common.toml\`:
 
@@ -51,7 +63,7 @@ ray_filename_allowlist = [
 
 Allowlist entries are sanitized using the same rules, then compared exactly against the sanitized filename. This means \`Ray-Tracing-Textures.zip\`, \`ray_tracing_textures.zip\`, and similar punctuation/case variants can be handled consistently by putting the intended filename in the allowlist.
 
-A filename match is independent of the existing hash blacklist. An already-blacklisted hash still detects even when its current filename is allowlisted. For a new \`ray\` filename match, TSA immediately persists the observed SHA-256 hash to \`blacklisted_hashes.txt\`, so later scans continue to detect that file even after it is renamed.
+A filename match is independent of the existing hash blacklist. An already-blacklisted hash still detects even when its current filename is allowlisted. For a new keyword filename match, TSA immediately persists the observed SHA-256 hash to \`blacklisted_hashes.txt\`, so later scans continue to detect that file even after it is renamed.
 
 ## Packet integrity check
 
@@ -230,7 +242,7 @@ For unambiguous use, the command also supports:
 /tsa allow hash <sha256>
 ```
 
-A 64-character hexadecimal value is automatically treated as a SHA-256 hash. Other values are treated as filenames. Filename entries are stored in `config/tsa_anticheat/allowed_names.txt` and use the same sanitization rules as the `ray` detector. Hash entries are stored in `config/tsa_anticheat/allowed_hashes.txt`.
+A 64-character hexadecimal value is automatically treated as a SHA-256 hash. Other values are treated as filenames. Filename entries are stored in `config/tsa_anticheat/allowed_names.txt` and use the same sanitization rules as the filename detector. Hash entries are stored in `config/tsa_anticheat/allowed_hashes.txt`.
 
 An allowed hash overrides the blacklist and filename detection, while an allowed filename only overrides the filename detector.
 

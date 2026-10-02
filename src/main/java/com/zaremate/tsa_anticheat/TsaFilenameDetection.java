@@ -221,6 +221,56 @@ public final class TsaFilenameDetection {
     }
 
     /**
+     * Adds a valid SHA-256 hash to the persistent allowlist.
+     */
+    public static boolean addHashToAllowlist(String hash) {
+        String normalizedHash = hash == null
+                ? ""
+                : hash.trim().toLowerCase(Locale.ROOT);
+
+        if (!normalizedHash.matches(HASH_PATTERN)) {
+            return false;
+        }
+
+        Path directory = FMLPaths.CONFIGDIR.get().resolve(TsaAnticheat.MOD_ID);
+        Path hashesFile = directory.resolve("allowed_hashes.txt");
+
+        try {
+            Files.createDirectories(directory);
+
+            if (Files.notExists(hashesFile)) {
+                Files.writeString(
+                        hashesFile,
+                        "# One SHA-256 hash per line. Allowed hashes override TSA blacklist and filename detection.\n" +
+                        "# Example: 0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef\n",
+                        StandardCharsets.UTF_8,
+                        StandardOpenOption.CREATE_NEW
+                );
+            }
+
+            Set<String> hashes = loadAllowedHashes();
+            if (!hashes.add(normalizedHash)) {
+                return false;
+            }
+
+            Files.writeString(
+                    hashesFile,
+                    normalizedHash + System.lineSeparator(),
+                    StandardCharsets.UTF_8,
+                    StandardOpenOption.CREATE,
+                    StandardOpenOption.APPEND
+            );
+            return true;
+        } catch (IOException exception) {
+            TsaAnticheat.LOGGER.warn(
+                    "Failed to add hash to TSA Anticheat allowlist.",
+                    exception
+            );
+            return false;
+        }
+    }
+
+    /**
      * Loads hashes that are explicitly exempt from TSA hash and filename
      * detection. This file is separate from the blacklist.
      */

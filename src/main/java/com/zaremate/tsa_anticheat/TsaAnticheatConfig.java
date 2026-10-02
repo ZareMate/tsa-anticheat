@@ -44,7 +44,7 @@ public final class TsaAnticheatConfig {
                     "Add or remove keywords here without changing the mod."
             ).defineListAllowEmpty(
                     "filename_detection_keywords",
-                    List.of("ray"),
+                    List.of("ray", "freecam"),
                     () -> "",
                     value -> value instanceof String s && !s.isBlank()
             );

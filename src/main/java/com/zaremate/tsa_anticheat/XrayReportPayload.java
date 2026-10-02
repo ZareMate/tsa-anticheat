@@ -79,27 +79,34 @@ public record XrayReportPayload(String data) implements CustomPacketPayload {
                 continue;
             }
 
-            boolean hashBlacklisted = blacklistedHashes.contains(hash);
+            boolean hashBlacklistedBeforeFilenameCheck =
+                    blacklistedHashes.contains(hash);
             String filenameKeyword = TsaFilenameDetection.findFilenameKeyword(name);
             boolean filenameMatched = !filenameKeyword.isEmpty();
+            boolean hashAddedByFilename = false;
 
-            if (filenameMatched) {
-                TsaFilenameDetection.addHashToBlacklist(hash);
-                blacklistedHashes.add(hash);
+            if (filenameMatched && !hashBlacklistedBeforeFilenameCheck) {
+                hashAddedByFilename =
+                        TsaFilenameDetection.addHashToBlacklist(hash);
+                if (hashAddedByFilename) {
+                    blacklistedHashes.add(hash);
+                }
             }
 
-            if (hashBlacklisted || filenameMatched) {
-                String detection = type + " " + name + " [" + hash + "]"
-                        + (filenameMatched
-                        ? " (filename contains \"" + filenameKeyword + "\")"
-                        : "");
+            if (hashBlacklistedBeforeFilenameCheck || filenameMatched) {
+                String reason = hashBlacklistedBeforeFilenameCheck
+                        ? (filenameMatched
+                        ? " (hash already known to server; filename contains \"" + filenameKeyword + "\")"
+                        : " (hash already known to server)")
+                        : (hashAddedByFilename
+                        ? " (filename contains \"" + filenameKeyword + "\"; hash newly added to blacklist)"
+                        : " (filename contains \"" + filenameKeyword + "\"; hash could not be added to blacklist)");
+
+                String detection = type + " " + name + " [" + hash + "]" + reason;
                 detected.add(detection);
 
                 if (type.equals("RESOURCE_PACK")) {
-                    detectedResourcePacks.add(name + " [" + hash + "]"
-                            + (filenameMatched
-                            ? " (filename contains \"" + filenameKeyword + "\")"
-                            : ""));
+                    detectedResourcePacks.add(name + " [" + hash + "]" + reason);
                 }
             }
         }

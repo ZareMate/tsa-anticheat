@@ -46,7 +46,8 @@ Keywords are configured in \`config/tsa_anticheat-common.toml\`:
 filename_detection_keywords = [
     "ray",
     "xray",
-    "cheat"
+    "cheat",
+    "freecam"
 ]
 ```
 

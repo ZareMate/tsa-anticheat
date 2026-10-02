@@ -150,8 +150,8 @@ public final class TsaFilenameDetection {
             if (Files.notExists(hashesFile)) {
                 Files.writeString(
                         hashesFile,
-                        "# One SHA-256 hash per line. Allowed hashes override TSA blacklist and filename detection.\\n" +
-                        "# Example: 0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef\\n",
+                        "# One SHA-256 hash per line. Allowed hashes override TSA blacklist and filename detection.\n" +
+                        "# Example: 0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef\n",
                         StandardCharsets.UTF_8,
                         StandardOpenOption.CREATE_NEW
                 );

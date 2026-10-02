@@ -90,12 +90,12 @@ public record XrayReportPayload(String data) implements CustomPacketPayload {
 
             if (hashBlacklisted || rayFilename) {
                 String detection = type + " " + name + " [" + hash + "]"
-                        + (rayFilename ? " (filename contains \\"ray\\")" : "");
+                        + (rayFilename ? " (filename contains \"ray\")" : "");
                 detected.add(detection);
 
                 if (type.equals("RESOURCE_PACK")) {
                     detectedResourcePacks.add(name + " [" + hash + "]"
-                            + (rayFilename ? " (filename contains \\"ray\\")" : ""));
+                            + (rayFilename ? " (filename contains \"ray\")" : ""));
                 }
             }
         }

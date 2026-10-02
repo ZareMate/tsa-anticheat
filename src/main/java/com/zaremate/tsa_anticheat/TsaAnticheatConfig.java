@@ -38,7 +38,7 @@ public final class TsaAnticheatConfig {
 
     public static final ModConfigSpec.ConfigValue<List<? extends String>> RAY_FILENAME_ALLOWLIST =
             BUILDER.comment(
-                    "Sanitized filenames in this list are exempt from the \\"ray\\" filename detector.",
+                    "Sanitized filenames in this list are exempt from the \"ray\" filename detector.",
                     "Matching is case-insensitive and ignores punctuation, spaces, and other non-alphanumeric characters.",
                     "Example: My-Ray-Texture-Pack.zip becomes myraytexturepack."
             ).defineListAllowEmpty(

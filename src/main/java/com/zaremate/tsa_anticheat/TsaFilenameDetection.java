@@ -80,8 +80,8 @@ public final class TsaFilenameDetection {
             if (Files.notExists(namesFile)) {
                 Files.writeString(
                         namesFile,
-                        "# One filename per line. Matching uses TSA filename sanitization.\\n" +
-                        "# Names here override the ray filename detector.\\n",
+                        "# One filename per line. Matching uses TSA filename sanitization.\n" +
+                        "# Names here override the ray filename detector.\n",
                         StandardCharsets.UTF_8,
                         StandardOpenOption.CREATE_NEW
                 );
@@ -165,9 +165,9 @@ public final class TsaFilenameDetection {
             if (Files.notExists(hashesFile)) {
                 Files.writeString(
                         hashesFile,
-                        "# One SHA-256 hash per line. Hashes can belong to mods or resource packs.\\n" +
-                        "# Detection can be based on hash or on a sanitized filename containing \\"ray\\".\\n" +
-                        "# Example: 0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef\\n",
+                        "# One SHA-256 hash per line. Hashes can belong to mods or resource packs.\n" +
+                        "# Detection can be based on hash or on a sanitized filename containing \"ray\".\n" +
+                        "# Example: 0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef\n",
                         StandardCharsets.UTF_8,
                         StandardOpenOption.CREATE_NEW
                 );

@@ -196,7 +196,7 @@ public final class TsaHashManager {
             if (hashBlacklisted || rayFilename) {
                 detections.add(
                         type + " " + name + " [" + hash + "]"
-                                + (rayFilename ? " (filename contains \\"ray\\")" : "")
+                                + (rayFilename ? " (filename contains \"ray\")" : "")
                 );
             }
         }

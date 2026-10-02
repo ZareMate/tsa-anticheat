@@ -16,7 +16,6 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
-@SuppressWarnings("null")
 public final class TsaHashManager {
     private static final Map<UUID, PendingRequest> PENDING =
             new ConcurrentHashMap<>();

@@ -95,7 +95,7 @@ public final class TsaFilenameDetection {
                 Files.writeString(
                         namesFile,
                         "# One filename per line. Matching uses TSA filename sanitization.\n" +
-                        "# Names here override the ray filename detector.\n",
+                        "# Names here override the configured filename detector.\n",
                         StandardCharsets.UTF_8,
                         StandardOpenOption.CREATE_NEW
                 );
@@ -128,7 +128,7 @@ public final class TsaFilenameDetection {
     }
 
     /**
-     * Loads filenames explicitly exempted from the ray filename detector.
+     * Loads filenames explicitly exempted from the configured filename detector.
      */
     public static Set<String> loadAllowedNames() {
         Path directory = FMLPaths.CONFIGDIR.get().resolve(TsaAnticheat.MOD_ID);

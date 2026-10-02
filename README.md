@@ -22,9 +22,9 @@ RESOURCE_PACK\tXrayPack.zip\t012345...
 MOD\tsome-cheat-mod.jar\tabcdef...
 ```
 
-The server's detection decision uses only the SHA-256 hash. The filename is retained only so the resulting report is readable.
+The server evaluates both the SHA-256 hash and the filename. Before the filename rule is checked, the name is Unicode-normalized, converted to lowercase, and sanitized to ASCII letters and digits only. If the sanitized filename contains \`ray\`, TSA reports it as a filename-based detection and automatically adds that SHA-256 hash to \`config/tsa_anticheat/blacklisted_hashes.txt\`.
 
-Renaming a pack or mod does not bypass detection.
+Renaming a pack or mod does not bypass a hash blacklist entry. A legitimate file whose name contains \`ray\` can be exempted with the filename allowlist below.
 
 ### Resource packs
 
@@ -35,6 +35,23 @@ Folder resource packs use the same canonical relative-path + file-content hashin
 ### Mods
 
 Mod JARs are treated as ZIP files and hashed from their logical entries in sorted order, so changing the JAR filename does not change its hash.
+
+## Ray filename detection
+
+TSA also detects entries whose sanitized filename contains \`ray\`. Sanitization is case-insensitive and removes punctuation, spaces, underscores, hyphens, dots, and other non-alphanumeric characters before the substring check.
+
+The allowlist is configured in \`config/tsa_anticheat-common.toml\`:
+
+\`\`\`toml
+ray_filename_allowlist = [
+    "Ray-Tracing-Textures.zip",
+    "my-ray-resource-pack.zip"
+]
+\`\`\`
+
+Allowlist entries are sanitized using the same rules, then compared exactly against the sanitized filename. This means \`Ray-Tracing-Textures.zip\`, \`ray_tracing_textures.zip\`, and similar punctuation/case variants can be handled consistently by putting the intended filename in the allowlist.
+
+A filename match is independent of the existing hash blacklist. An already-blacklisted hash still detects even when its current filename is allowlisted. For a new \`ray\` filename match, TSA immediately persists the observed SHA-256 hash to \`blacklisted_hashes.txt\`, so later scans continue to detect that file even after it is renamed.
 
 ## Packet integrity check
 

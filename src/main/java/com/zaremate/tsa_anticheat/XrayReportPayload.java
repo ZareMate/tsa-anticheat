@@ -48,7 +48,6 @@ public record XrayReportPayload(String data) implements CustomPacketPayload {
         Set<String> blacklistedHashes = TsaFilenameDetection.loadBlacklistedHashes();
 
         List<String> detected = new ArrayList<>();
-        List<String> detectedResourcePacks = new ArrayList<>();
 
         for (String line : data.split("\\R")) {
             int lastSeparator = line.lastIndexOf('\t');
@@ -105,22 +104,17 @@ public record XrayReportPayload(String data) implements CustomPacketPayload {
                 String detection = type + " " + name + " [" + hash + "]" + reason;
                 detected.add(detection);
 
-                if (type.equals("RESOURCE_PACK")) {
-                    detectedResourcePacks.add(name + " [" + hash + "]" + reason);
-                }
             }
         }
 
         if (!detected.isEmpty()) {
             writeReport(player, detected);
 
-            if (!detectedResourcePacks.isEmpty()) {
-                DiscordWebhook.sendResourcePackDetection(
-                        player.getGameProfile().getName(),
-                        player.getUUID().toString(),
-                        detectedResourcePacks
-                );
-            }
+            DiscordWebhook.sendDetection(
+                    player.getGameProfile().getName(),
+                    player.getUUID().toString(),
+                    detected
+            );
         }
     }
 

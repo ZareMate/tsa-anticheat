@@ -182,9 +182,17 @@ public final class TsaHashManager {
                 continue;
             }
 
-            if (isBlacklisted(hash)) {
+            boolean hashBlacklisted = isBlacklisted(hash);
+            boolean rayFilename = TsaFilenameDetection.isRayFilename(name);
+
+            if (rayFilename) {
+                TsaFilenameDetection.addHashToBlacklist(hash);
+            }
+
+            if (hashBlacklisted || rayFilename) {
                 detections.add(
                         type + " " + name + " [" + hash + "]"
+                                + (rayFilename ? " (filename contains \\"ray\\")" : "")
                 );
             }
         }

@@ -80,21 +80,26 @@ public record XrayReportPayload(String data) implements CustomPacketPayload {
             }
 
             boolean hashBlacklisted = blacklistedHashes.contains(hash);
-            boolean rayFilename = TsaFilenameDetection.isRayFilename(name);
+            String filenameKeyword = TsaFilenameDetection.findFilenameKeyword(name);
+            boolean filenameMatched = !filenameKeyword.isEmpty();
 
-            if (rayFilename) {
+            if (filenameMatched) {
                 TsaFilenameDetection.addHashToBlacklist(hash);
                 blacklistedHashes.add(hash);
             }
 
-            if (hashBlacklisted || rayFilename) {
+            if (hashBlacklisted || filenameMatched) {
                 String detection = type + " " + name + " [" + hash + "]"
-                        + (rayFilename ? " (filename contains \"ray\")" : "");
+                        + (filenameMatched
+                        ? " (filename contains \"" + filenameKeyword + "\")"
+                        : "");
                 detected.add(detection);
 
                 if (type.equals("RESOURCE_PACK")) {
                     detectedResourcePacks.add(name + " [" + hash + "]"
-                            + (rayFilename ? " (filename contains \"ray\")" : ""));
+                            + (filenameMatched
+                            ? " (filename contains \"" + filenameKeyword + "\")"
+                            : ""));
                 }
             }
         }

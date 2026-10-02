@@ -187,16 +187,19 @@ public final class TsaHashManager {
             }
 
             boolean hashBlacklisted = isBlacklisted(hash);
-            boolean rayFilename = TsaFilenameDetection.isRayFilename(name);
+            String filenameKeyword = TsaFilenameDetection.findFilenameKeyword(name);
+            boolean filenameMatched = !filenameKeyword.isEmpty();
 
-            if (rayFilename) {
+            if (filenameMatched) {
                 TsaFilenameDetection.addHashToBlacklist(hash);
             }
 
-            if (hashBlacklisted || rayFilename) {
+            if (hashBlacklisted || filenameMatched) {
                 detections.add(
                         type + " " + name + " [" + hash + "]"
-                                + (rayFilename ? " (filename contains \"ray\")" : "")
+                                + (filenameMatched
+                                ? " (filename contains \"" + filenameKeyword + "\")"
+                                : "")
                 );
             }
         }

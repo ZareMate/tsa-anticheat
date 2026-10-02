@@ -186,21 +186,33 @@ public final class TsaHashManager {
                 continue;
             }
 
-            boolean hashBlacklisted = isBlacklisted(hash);
+            boolean hashBlacklistedBeforeFilenameCheck = isBlacklisted(hash);
             String filenameKeyword = TsaFilenameDetection.findFilenameKeyword(name);
             boolean filenameMatched = !filenameKeyword.isEmpty();
+            boolean hashAddedByFilename = false;
 
-            if (filenameMatched) {
-                TsaFilenameDetection.addHashToBlacklist(hash);
+            if (filenameMatched && !hashBlacklistedBeforeFilenameCheck) {
+                hashAddedByFilename =
+                        TsaFilenameDetection.addHashToBlacklist(hash);
             }
 
-            if (hashBlacklisted || filenameMatched) {
-                detections.add(
-                        type + " " + name + " [" + hash + "]"
-                                + (filenameMatched
-                                ? " (filename contains \"" + filenameKeyword + "\")"
-                                : "")
-                );
+            if (hashBlacklistedBeforeFilenameCheck || filenameMatched) {
+                String detection = type + " " + name + " [" + hash + "]";
+
+                if (hashBlacklistedBeforeFilenameCheck && filenameMatched) {
+                    detection += " (hash already known to server; filename contains \""
+                            + filenameKeyword + "\")";
+                } else if (hashBlacklistedBeforeFilenameCheck) {
+                    detection += " (hash already known to server)";
+                } else if (hashAddedByFilename) {
+                    detection += " (filename contains \"" + filenameKeyword
+                            + "\"; hash newly added to blacklist)";
+                } else {
+                    detection += " (filename contains \"" + filenameKeyword
+                            + "\"; hash could not be added to blacklist)";
+                }
+
+                detections.add(detection);
             }
         }
 

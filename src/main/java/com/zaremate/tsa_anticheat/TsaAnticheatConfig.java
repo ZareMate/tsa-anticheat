@@ -34,6 +34,18 @@ public final class TsaAnticheatConfig {
                     "Default: tsa_anticheat.alerts."
             ).define("broadcast_permission", "tsa_anticheat.alerts");
 
+    public static final ModConfigSpec.ConfigValue<List<? extends String>> RAY_FILENAME_ALLOWLIST =
+            BUILDER.comment(
+                    "Sanitized filenames in this list are exempt from the \\"ray\\" filename detector.",
+                    "Matching is case-insensitive and ignores punctuation, spaces, and other non-alphanumeric characters.",
+                    "Example: My-Ray-Texture-Pack.zip becomes myraytexturepack."
+            ).defineListAllowEmpty(
+                    "ray_filename_allowlist",
+                    List.of(),
+                    () -> "",
+                    value -> value instanceof String s && !s.isBlank()
+            );
+
     public static final ModConfigSpec.IntValue PACKET_CHECK_TIMEOUT_SECONDS =
             BUILDER.comment(
                     "Maximum time to wait for a packet integrity response.",
@@ -47,6 +59,13 @@ public final class TsaAnticheatConfig {
 
     public static String webhookUrl() {
         return WEBHOOK_URL.get().trim();
+    }
+
+    public static List<String> rayFilenameAllowlist() {
+        return RAY_FILENAME_ALLOWLIST.get().stream()
+                .map(String::trim)
+                .filter(s -> !s.isBlank())
+                .toList();
     }
 
     public static long packetCheckTimeoutMillis() {

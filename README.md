@@ -215,6 +215,25 @@ AdminNotesIntegration.addSystemNote(
 
 For the normal TSA integration pattern, Admin Notes should query `TsaAnticheatAPI` and render TSA's current data as a live section rather than creating duplicate notes.
 
+## Allow command
+
+Staff can permanently allow a filename or SHA-256 hash with:
+
+```
+/tsa allow <name-or-hash>
+```
+
+For unambiguous use, the command also supports:
+
+```
+/tsa allow name <filename>
+/tsa allow hash <sha256>
+```
+
+A 64-character hexadecimal value is automatically treated as a SHA-256 hash. Other values are treated as filenames. Filename entries are stored in `config/tsa_anticheat/allowed_names.txt` and use the same sanitization rules as the `ray` detector. Hash entries are stored in `config/tsa_anticheat/allowed_hashes.txt`.
+
+An allowed hash overrides the blacklist and filename detection, while an allowed filename only overrides the filename detector.
+
 ## Allowed hashes
 
 Specific SHA-256 hashes can be exempted from TSA detection with:

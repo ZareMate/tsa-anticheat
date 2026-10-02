@@ -9,11 +9,11 @@ import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.text.Normalizer;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Locale;
 import java.util.Set;
 
 public final class TsaFilenameDetection {
-    private static final String TRIGGER = "ray";
     private static final String HASH_PATTERN = "[0-9a-f]{64}";
 
     private TsaFilenameDetection() {
@@ -37,9 +37,24 @@ public final class TsaFilenameDetection {
         return normalized.replaceAll("[^a-z0-9]", "");
     }
 
-    public static boolean isRayFilename(String filename) {
+    /**
+     * Returns the first configured filename keyword found in the sanitized
+     * filename, or an empty string when no keyword matches.
+     */
+    public static String findFilenameKeyword(String filename) {
         String sanitized = sanitizeFilename(filename);
-        return sanitized.contains(TRIGGER) && !isAllowlisted(sanitized);
+
+        if (sanitized.isEmpty() || isAllowlisted(sanitized)) {
+            return "";
+        }
+
+        for (String keyword : TsaAnticheatConfig.filenameDetectionKeywords()) {
+            if (sanitized.contains(keyword)) {
+                return keyword;
+            }
+        }
+
+        return "";
     }
 
     public static boolean isAllowlisted(String filename) {

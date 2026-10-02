@@ -86,6 +86,27 @@ public final class TsaAnticheatConfig {
                 .toList();
     }
 
+    public static boolean addFilenameDetectionKeyword(String keyword) {
+        String sanitized = TsaFilenameDetection.sanitizeFilename(keyword);
+        if (sanitized.isEmpty()) return false;
+        List<String> keywords = new java.util.ArrayList<>(filenameDetectionKeywords());
+        if (keywords.contains(sanitized)) return false;
+        keywords.add(sanitized);
+        FILENAME_DETECTION_KEYWORDS.set(keywords);
+        FILENAME_DETECTION_KEYWORDS.save();
+        return true;
+    }
+
+    public static boolean removeFilenameDetectionKeyword(String keyword) {
+        String sanitized = TsaFilenameDetection.sanitizeFilename(keyword);
+        if (sanitized.isEmpty()) return false;
+        List<String> keywords = new java.util.ArrayList<>(filenameDetectionKeywords());
+        if (!keywords.remove(sanitized)) return false;
+        FILENAME_DETECTION_KEYWORDS.set(keywords);
+        FILENAME_DETECTION_KEYWORDS.save();
+        return true;
+    }
+
     public static List<String> rayFilenameAllowlist() {
         return RAY_FILENAME_ALLOWLIST.get().stream()
                 .map(String::trim)

@@ -36,6 +36,19 @@ public final class TsaAnticheatConfig {
                     "Default: tsa_anticheat.alerts."
             ).define("broadcast_permission", "tsa_anticheat.alerts");
 
+    public static final ModConfigSpec.ConfigValue<List<? extends String>> FILENAME_DETECTION_KEYWORDS =
+            BUILDER.comment(
+                    "Sanitized filename keywords that trigger a filename-based detection.",
+                    "Matching is case-insensitive and ignores punctuation, spaces, and other non-alphanumeric characters.",
+                    "Example: ["ray", "xray", "cheat"] detects any sanitized filename containing one of these keywords.",
+                    "Add or remove keywords here without changing the mod."
+            ).defineListAllowEmpty(
+                    "filename_detection_keywords",
+                    List.of("ray"),
+                    () -> "",
+                    value -> value instanceof String s && !s.isBlank()
+            );
+
     public static final ModConfigSpec.ConfigValue<List<? extends String>> RAY_FILENAME_ALLOWLIST =
             BUILDER.comment(
                     "Sanitized filenames in this list are exempt from the \"ray\" filename detector.",
@@ -61,6 +74,16 @@ public final class TsaAnticheatConfig {
 
     public static String webhookUrl() {
         return WEBHOOK_URL.get().trim();
+    }
+
+    public static List<String> filenameDetectionKeywords() {
+        return FILENAME_DETECTION_KEYWORDS.get().stream()
+                .map(String::trim)
+                .filter(s -> !s.isBlank())
+                .map(TsaFilenameDetection::sanitizeFilename)
+                .filter(s -> !s.isEmpty())
+                .distinct()
+                .toList();
     }
 
     public static List<String> rayFilenameAllowlist() {

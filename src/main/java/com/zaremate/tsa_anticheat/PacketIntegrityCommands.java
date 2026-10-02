@@ -63,7 +63,15 @@ public final class PacketIntegrityCommands {
                                                         StringArgumentType.getString(context, "name")
                                                 )))
                                 )
-                                .then(Commands.literal("keyword")
+                                .then(Commands.literal("hash")
+                                        .then(Commands.argument("hash", StringArgumentType.word())
+                                                .executes(context -> allowHash(
+                                                        context.getSource(),
+                                                        StringArgumentType.getString(context, "hash")
+                                                )))
+                                )
+                        )
+                        .then(Commands.literal("keyword")
                                 .then(Commands.literal("list")
                                         .executes(context -> listKeywords(context.getSource())))
                                 .then(Commands.literal("add")
@@ -78,14 +86,6 @@ public final class PacketIntegrityCommands {
                                                 .executes(context -> removeKeyword(
                                                         context.getSource(),
                                                         StringArgumentType.getString(context, "keyword")
-                                                )))
-                                )
-                        )
-                        .then(Commands.literal("hash")
-                                        .then(Commands.argument("hash", StringArgumentType.word())
-                                                .executes(context -> allowHash(
-                                                        context.getSource(),
-                                                        StringArgumentType.getString(context, "hash")
                                                 )))
                                 )
                         )

@@ -140,10 +140,10 @@ public final class PacketIntegrityCommands {
             return 0;
         }
 
-        boolean added = TsaFilenameDetection.addFilenameToAllowlist(cleanName);
         String sanitized = TsaFilenameDetection.sanitizeFilename(cleanName);
 
-        if (!added) {
+        if (TsaFilenameDetection.isAllowlisted(cleanName)
+                || !TsaFilenameDetection.addFilenameToAllowlist(cleanName)) {
             source.sendFailure(
                     Component.literal(
                             "Filename is already allowed or invalid: " + cleanName
@@ -175,38 +175,8 @@ public final class PacketIntegrityCommands {
             return 0;
         }
 
-        if (TsaFilenameDetection.loadAllowedHashes().contains(normalized)) {
-            source.sendFailure(Component.literal("Hash is already allowed."));
-            return 0;
-        }
-
-        Path directory = net.neoforged.fml.loading.FMLPaths.CONFIGDIR.get()
-                .resolve(TsaAnticheat.MOD_ID);
-        Path hashesFile = directory.resolve("allowed_hashes.txt");
-
-        try {
-            java.nio.file.Files.createDirectories(directory);
-
-            if (java.nio.file.Files.notExists(hashesFile)) {
-                java.nio.file.Files.writeString(
-                        hashesFile,
-                        "# One SHA-256 hash per line. Allowed hashes override TSA blacklist and filename detection.\\n" +
-                        "# Example: 0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef\\n",
-                        java.nio.charset.StandardCharsets.UTF_8,
-                        java.nio.file.StandardOpenOption.CREATE_NEW
-                );
-            }
-
-            java.nio.file.Files.writeString(
-                    hashesFile,
-                    normalized + System.lineSeparator(),
-                    java.nio.charset.StandardCharsets.UTF_8,
-                    java.nio.file.StandardOpenOption.CREATE,
-                    java.nio.file.StandardOpenOption.APPEND
-            );
-        } catch (java.io.IOException exception) {
-            TsaAnticheat.LOGGER.warn("Failed to add allowed TSA hash.", exception);
-            source.sendFailure(Component.literal("Failed to save allowed hash."));
+        if (!TsaFilenameDetection.addHashToAllowlist(normalized)) {
+            source.sendFailure(Component.literal("Hash is already allowed or could not be saved."));
             return 0;
         }
 

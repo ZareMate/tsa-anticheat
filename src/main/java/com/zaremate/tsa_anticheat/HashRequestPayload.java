@@ -7,6 +7,7 @@ import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 import net.minecraft.resources.ResourceLocation;
 import net.neoforged.neoforge.network.handling.IPayloadContext;
 
+@SuppressWarnings("null")
 public record HashRequestPayload(String kind, String name) implements CustomPacketPayload {
     public static final Type<HashRequestPayload> TYPE =
             new Type<>(ResourceLocation.fromNamespaceAndPath(

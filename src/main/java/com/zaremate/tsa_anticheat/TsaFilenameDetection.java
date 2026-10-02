@@ -56,7 +56,91 @@ public final class TsaFilenameDetection {
             }
         }
 
-        return false;
+        return loadAllowedNames().stream()
+                .map(TsaFilenameDetection::sanitizeFilename)
+                .anyMatch(sanitized::equals);
+    }
+
+    /**
+     * Adds a filename to the persistent TSA filename allowlist.
+     */
+    public static boolean addFilenameToAllowlist(String filename) {
+        String normalizedFilename = filename == null ? "" : filename.trim();
+
+        if (sanitizeFilename(normalizedFilename).isEmpty()) {
+            return false;
+        }
+
+        Path directory = FMLPaths.CONFIGDIR.get().resolve(TsaAnticheat.MOD_ID);
+        Path namesFile = directory.resolve("allowed_names.txt");
+
+        try {
+            Files.createDirectories(directory);
+
+            if (Files.notExists(namesFile)) {
+                Files.writeString(
+                        namesFile,
+                        "# One filename per line. Matching uses TSA filename sanitization.\\n" +
+                        "# Names here override the ray filename detector.\\n",
+                        StandardCharsets.UTF_8,
+                        StandardOpenOption.CREATE_NEW
+                );
+            }
+
+            String sanitized = sanitizeFilename(normalizedFilename);
+
+            for (String line : Files.readAllLines(namesFile, StandardCharsets.UTF_8)) {
+                if (sanitizeFilename(line).equals(sanitized)) {
+                    return false;
+                }
+            }
+
+            Files.writeString(
+                    namesFile,
+                    normalizedFilename + System.lineSeparator(),
+                    StandardCharsets.UTF_8,
+                    StandardOpenOption.CREATE,
+                    StandardOpenOption.APPEND
+            );
+
+            return true;
+        } catch (IOException exception) {
+            TsaAnticheat.LOGGER.warn(
+                    "Failed to add filename to TSA Anticheat allowlist.",
+                    exception
+            );
+            return false;
+        }
+    }
+
+    /**
+     * Loads filenames explicitly exempted from the ray filename detector.
+     */
+    public static Set<String> loadAllowedNames() {
+        Path directory = FMLPaths.CONFIGDIR.get().resolve(TsaAnticheat.MOD_ID);
+        Path namesFile = directory.resolve("allowed_names.txt");
+
+        try {
+            if (Files.notExists(namesFile)) {
+                return Set.of();
+            }
+
+            Set<String> names = new HashSet<>();
+
+            for (String line : Files.readAllLines(namesFile, StandardCharsets.UTF_8)) {
+                if (!line.isBlank() && !line.trim().startsWith("#")) {
+                    names.add(line.trim());
+                }
+            }
+
+            return names;
+        } catch (IOException exception) {
+            TsaAnticheat.LOGGER.warn(
+                    "Failed to read TSA Anticheat filename allowlist.",
+                    exception
+            );
+            return Set.of();
+        }
     }
 
     /**

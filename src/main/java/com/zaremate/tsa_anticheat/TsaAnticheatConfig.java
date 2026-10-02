@@ -2,6 +2,8 @@ package com.zaremate.tsa_anticheat;
 
 import net.neoforged.neoforge.common.ModConfigSpec;
 
+import java.util.List;
+
 public final class TsaAnticheatConfig {
     private static final ModConfigSpec.Builder BUILDER =
             new ModConfigSpec.Builder();

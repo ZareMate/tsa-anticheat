@@ -40,7 +40,7 @@ public final class TsaAnticheatConfig {
             BUILDER.comment(
                     "Sanitized filename keywords that trigger a filename-based detection.",
                     "Matching is case-insensitive and ignores punctuation, spaces, and other non-alphanumeric characters.",
-                    "Example: ["ray", "xray", "cheat"] detects any sanitized filename containing one of these keywords.",
+                    "Example: [\"ray\", \"xray\", \"cheat\"] detects any sanitized filename containing one of these keywords.",
                     "Add or remove keywords here without changing the mod."
             ).defineListAllowEmpty(
                     "filename_detection_keywords",

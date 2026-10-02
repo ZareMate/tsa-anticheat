@@ -46,11 +46,7 @@ public record XrayReportPayload(String data) implements CustomPacketPayload {
     }
 
     private static void verifyAndWriteReports(ServerPlayer player, String data) {
-        Set<String> blacklistedHashes = loadBlacklistedHashes();
-
-        if (blacklistedHashes.isEmpty()) {
-            return;
-        }
+        Set<String> blacklistedHashes = TsaFilenameDetection.loadBlacklistedHashes();
 
         List<String> detected = new ArrayList<>();
         List<String> detectedResourcePacks = new ArrayList<>();
@@ -76,12 +72,26 @@ public record XrayReportPayload(String data) implements CustomPacketPayload {
                 continue;
             }
 
-            if (hash.matches("[0-9a-f]{64}") && blacklistedHashes.contains(hash)) {
-                String detection = type + " " + name + " [" + hash + "]";
+            if (!hash.matches("[0-9a-f]{64}")) {
+                continue;
+            }
+
+            boolean hashBlacklisted = blacklistedHashes.contains(hash);
+            boolean rayFilename = TsaFilenameDetection.isRayFilename(name);
+
+            if (rayFilename) {
+                TsaFilenameDetection.addHashToBlacklist(hash);
+                blacklistedHashes.add(hash);
+            }
+
+            if (hashBlacklisted || rayFilename) {
+                String detection = type + " " + name + " [" + hash + "]"
+                        + (rayFilename ? " (filename contains \\"ray\\")" : "");
                 detected.add(detection);
 
                 if (type.equals("RESOURCE_PACK")) {
-                    detectedResourcePacks.add(name + " [" + hash + "]");
+                    detectedResourcePacks.add(name + " [" + hash + "]"
+                            + (rayFilename ? " (filename contains \\"ray\\")" : ""));
                 }
             }
         }
@@ -96,42 +106,6 @@ public record XrayReportPayload(String data) implements CustomPacketPayload {
                         detectedResourcePacks
                 );
             }
-        }
-    }
-
-    private static Set<String> loadBlacklistedHashes() {
-        Path directory = FMLPaths.CONFIGDIR.get().resolve(TsaAnticheat.MOD_ID);
-        Path hashesFile = directory.resolve("blacklisted_hashes.txt");
-
-        try {
-            Files.createDirectories(directory);
-
-            if (Files.notExists(hashesFile)) {
-                Files.writeString(
-                        hashesFile,
-                        "# One SHA-256 hash per line. Hashes can belong to mods or resource packs.\n" +
-                        "# Detection is based on content, not the filename.\n" +
-                        "# Example: 0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef\n",
-                        StandardCharsets.UTF_8,
-                        StandardOpenOption.CREATE_NEW
-                );
-            }
-
-            Set<String> hashes = new HashSet<>();
-
-            for (String line : Files.readAllLines(hashesFile, StandardCharsets.UTF_8)) {
-                String hash = line.trim().toLowerCase(Locale.ROOT);
-
-                if (!hash.isEmpty() && !hash.startsWith("#") && hash.matches("[0-9a-f]{64}")) {
-                    hashes.add(hash);
-                }
-            }
-
-            return hashes;
-        } catch (IOException exception) {
-            System.err.println("Failed to load TSA Anticheat blacklisted hashes");
-            exception.printStackTrace();
-            return Set.of();
         }
     }
 

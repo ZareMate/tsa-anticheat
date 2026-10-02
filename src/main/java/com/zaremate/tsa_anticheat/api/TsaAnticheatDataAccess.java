@@ -12,6 +12,7 @@ import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.UUID;
 
 final class TsaAnticheatDataAccess {
@@ -167,7 +168,7 @@ final class TsaAnticheatDataAccess {
         var server = ServerLifecycleHooks.getCurrentServer();
 
         if (server != null) {
-            var player = server.getPlayerList().getPlayer(uuid);
+            var player = server.getPlayerList().getPlayer(Objects.requireNonNull(uuid));
 
             if (player != null) {
                 return player.getGameProfile().getName();

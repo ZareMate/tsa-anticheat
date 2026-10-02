@@ -8,7 +8,6 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
 import net.neoforged.neoforge.network.handling.IPayloadContext;
 
-@SuppressWarnings("null")
 public record PacketIntegrityResponsePayload(String challenge, String response) implements CustomPacketPayload {
     public static final Type<PacketIntegrityResponsePayload> TYPE =
             new Type<>(ResourceLocation.fromNamespaceAndPath(TsaAnticheat.MOD_ID, "packet_response"));

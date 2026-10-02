@@ -6,7 +6,6 @@ import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 import net.minecraft.resources.ResourceLocation;
 
-@SuppressWarnings("null")
 public record PacketIntegrityChallengePayload(String challenge) implements CustomPacketPayload {
     public static final Type<PacketIntegrityChallengePayload> TYPE =
             new Type<>(ResourceLocation.fromNamespaceAndPath(TsaAnticheat.MOD_ID, "packet_challenge"));

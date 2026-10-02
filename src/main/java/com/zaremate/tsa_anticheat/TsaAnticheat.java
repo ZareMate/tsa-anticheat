@@ -11,7 +11,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 @Mod(TsaAnticheat.MOD_ID)
-@SuppressWarnings("null")
 public final class TsaAnticheat {
     public static final String MOD_ID = "tsa_anticheat";
     public static final Logger LOGGER =

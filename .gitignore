@@ -18,6 +18,7 @@ run/
 .classpath
 .project
 .settings/
+.eclipse/
 
 # Java
 *.class

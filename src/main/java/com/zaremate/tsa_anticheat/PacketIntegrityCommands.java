@@ -12,7 +12,6 @@ import net.neoforged.neoforge.event.RegisterCommandsEvent;
 
 import java.util.UUID;
 
-@SuppressWarnings("null")
 public final class PacketIntegrityCommands {
     private PacketIntegrityCommands() {
     }

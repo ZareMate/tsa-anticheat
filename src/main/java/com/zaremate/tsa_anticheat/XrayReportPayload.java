@@ -16,11 +16,11 @@ import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.time.LocalDate;
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Set;
 
+@SuppressWarnings("null")
 public record XrayReportPayload(String data) implements CustomPacketPayload {
     public static final Type<XrayReportPayload> TYPE =
             new Type<>(ResourceLocation.fromNamespaceAndPath(TsaAnticheat.MOD_ID, "xray_report"));

@@ -50,6 +50,27 @@ public final class PacketIntegrityCommands {
                                                 EntityArgument.getPlayer(context, "player")
                                         )))
                         )
+                        .then(Commands.literal("allow")
+                                .then(Commands.argument("value", StringArgumentType.greedyString())
+                                        .executes(context -> allowValue(
+                                                context.getSource(),
+                                                StringArgumentType.getString(context, "value")
+                                        )))
+                                .then(Commands.literal("name")
+                                        .then(Commands.argument("name", StringArgumentType.greedyString())
+                                                .executes(context -> allowName(
+                                                        context.getSource(),
+                                                        StringArgumentType.getString(context, "name")
+                                                )))
+                                )
+                                .then(Commands.literal("hash")
+                                        .then(Commands.argument("hash", StringArgumentType.word())
+                                                .executes(context -> allowHash(
+                                                        context.getSource(),
+                                                        StringArgumentType.getString(context, "hash")
+                                                )))
+                                )
+                        )
                         .then(Commands.literal("hash")
                                 .then(Commands.literal("mod")
                                         .then(Commands.literal("*")
@@ -93,6 +114,107 @@ public final class PacketIntegrityCommands {
                                 )
                         )
         );
+    }
+
+    private static int allowValue(
+            CommandSourceStack source,
+            String value
+    ) {
+        String normalized = value.trim().toLowerCase(java.util.Locale.ROOT);
+
+        if (normalized.matches("[0-9a-f]{64}")) {
+            return allowHash(source, value);
+        }
+
+        return allowName(source, value);
+    }
+
+    private static int allowName(
+            CommandSourceStack source,
+            String name
+    ) {
+        String cleanName = name.trim();
+
+        if (cleanName.isEmpty()) {
+            source.sendFailure(Component.literal("Filename cannot be empty."));
+            return 0;
+        }
+
+        boolean added = TsaFilenameDetection.addFilenameToAllowlist(cleanName);
+        String sanitized = TsaFilenameDetection.sanitizeFilename(cleanName);
+
+        if (!added) {
+            source.sendFailure(
+                    Component.literal(
+                            "Filename is already allowed or invalid: " + cleanName
+                    )
+            );
+            return 0;
+        }
+
+        source.sendSuccess(
+                () -> Component.literal(
+                        "Allowed filename: " + cleanName +
+                        " (sanitized: " + sanitized + ")"
+                ),
+                true
+        );
+        return 1;
+    }
+
+    private static int allowHash(
+            CommandSourceStack source,
+            String hash
+    ) {
+        String normalized = hash.trim().toLowerCase(java.util.Locale.ROOT);
+
+        if (!normalized.matches("[0-9a-f]{64}")) {
+            source.sendFailure(Component.literal(
+                    "Invalid SHA-256 hash. Expected exactly 64 hexadecimal characters."
+            ));
+            return 0;
+        }
+
+        if (TsaFilenameDetection.loadAllowedHashes().contains(normalized)) {
+            source.sendFailure(Component.literal("Hash is already allowed."));
+            return 0;
+        }
+
+        Path directory = net.neoforged.fml.loading.FMLPaths.CONFIGDIR.get()
+                .resolve(TsaAnticheat.MOD_ID);
+        Path hashesFile = directory.resolve("allowed_hashes.txt");
+
+        try {
+            java.nio.file.Files.createDirectories(directory);
+
+            if (java.nio.file.Files.notExists(hashesFile)) {
+                java.nio.file.Files.writeString(
+                        hashesFile,
+                        "# One SHA-256 hash per line. Allowed hashes override TSA blacklist and filename detection.\\n" +
+                        "# Example: 0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef\\n",
+                        java.nio.charset.StandardCharsets.UTF_8,
+                        java.nio.file.StandardOpenOption.CREATE_NEW
+                );
+            }
+
+            java.nio.file.Files.writeString(
+                    hashesFile,
+                    normalized + System.lineSeparator(),
+                    java.nio.charset.StandardCharsets.UTF_8,
+                    java.nio.file.StandardOpenOption.CREATE,
+                    java.nio.file.StandardOpenOption.APPEND
+            );
+        } catch (java.io.IOException exception) {
+            TsaAnticheat.LOGGER.warn("Failed to add allowed TSA hash.", exception);
+            source.sendFailure(Component.literal("Failed to save allowed hash."));
+            return 0;
+        }
+
+        source.sendSuccess(
+                () -> Component.literal("Allowed hash: " + normalized),
+                true
+        );
+        return 1;
     }
 
     private static int startCheck(CommandSourceStack source, ServerPlayer target) {

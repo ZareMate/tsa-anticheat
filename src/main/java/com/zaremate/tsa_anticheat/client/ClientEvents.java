@@ -44,8 +44,7 @@ public final class ClientEvents {
                     String hash = ResourcePackHasher.hash(entry);
                     String name = entry.getFileName().toString();
 
-                    // Detection is performed by the server using only the hash.
-                    // The type and name are included for readable reports.
+                    // The server evaluates both the SHA-256 hash and the sanitized filename.
                     reports.add(type + "\t" + name + "\t" + hash);
                 } catch (Exception ignored) {
                     // Ignore unreadable/invalid entries.

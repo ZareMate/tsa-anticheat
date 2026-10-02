@@ -10,7 +10,6 @@ import java.util.UUID;
  *
  * <p>TSA remains fully functional when Admin Notes is not installed.</p>
  */
-@SuppressWarnings("null")
 public final class AdminNotesIntegration {
     private static final String API_CLASS =
             "com.zaremate.admin_notes.AdminNotesAPI";

@@ -76,6 +76,10 @@ public record XrayReportPayload(String data) implements CustomPacketPayload {
                 continue;
             }
 
+            if (TsaFilenameDetection.isHashAllowed(hash)) {
+                continue;
+            }
+
             boolean hashBlacklisted = blacklistedHashes.contains(hash);
             boolean rayFilename = TsaFilenameDetection.isRayFilename(name);
 

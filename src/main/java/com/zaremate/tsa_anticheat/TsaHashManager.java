@@ -182,6 +182,10 @@ public final class TsaHashManager {
                 continue;
             }
 
+            if (TsaFilenameDetection.isHashAllowed(hash)) {
+                continue;
+            }
+
             boolean hashBlacklisted = isBlacklisted(hash);
             boolean rayFilename = TsaFilenameDetection.isRayFilename(name);
 

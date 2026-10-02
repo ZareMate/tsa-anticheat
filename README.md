@@ -215,6 +215,25 @@ AdminNotesIntegration.addSystemNote(
 
 For the normal TSA integration pattern, Admin Notes should query `TsaAnticheatAPI` and render TSA's current data as a live section rather than creating duplicate notes.
 
+## Allowed hashes
+
+Specific SHA-256 hashes can be exempted from TSA detection with:
+
+```
+config/tsa_anticheat/allowed_hashes.txt
+```
+
+Put one SHA-256 hash per line. An allowed hash overrides both the normal `blacklisted_hashes.txt` check and the `ray` filename detector. This also prevents an allowed file's hash from being newly added to the blacklist because its filename contains `ray`.
+
+Example:
+
+```
+# Legitimate ray-tracing resource pack
+0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
+```
+
+The hash remains allowed even if the file is renamed. Invalid lines and comments beginning with `#` are ignored.
+
 ## Blacklist
 
 On the first received report the server creates:

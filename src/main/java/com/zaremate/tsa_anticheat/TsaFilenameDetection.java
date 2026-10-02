@@ -124,6 +124,59 @@ public final class TsaFilenameDetection {
         }
     }
 
+    public static boolean isHashAllowed(String hash) {
+        String normalizedHash = hash == null
+                ? ""
+                : hash.trim().toLowerCase(Locale.ROOT);
+
+        if (!normalizedHash.matches(HASH_PATTERN)) {
+            return false;
+        }
+
+        return loadAllowedHashes().contains(normalizedHash);
+    }
+
+    /**
+     * Loads hashes that are explicitly exempt from TSA hash and filename
+     * detection. This file is separate from the blacklist.
+     */
+    public static Set<String> loadAllowedHashes() {
+        Path directory = FMLPaths.CONFIGDIR.get().resolve(TsaAnticheat.MOD_ID);
+        Path hashesFile = directory.resolve("allowed_hashes.txt");
+
+        try {
+            Files.createDirectories(directory);
+
+            if (Files.notExists(hashesFile)) {
+                Files.writeString(
+                        hashesFile,
+                        "# One SHA-256 hash per line. Allowed hashes override TSA blacklist and filename detection.\\n" +
+                        "# Example: 0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef\\n",
+                        StandardCharsets.UTF_8,
+                        StandardOpenOption.CREATE_NEW
+                );
+            }
+
+            Set<String> hashes = new HashSet<>();
+
+            for (String line : Files.readAllLines(hashesFile, StandardCharsets.UTF_8)) {
+                String hash = line.trim().toLowerCase(Locale.ROOT);
+
+                if (hash.matches(HASH_PATTERN)) {
+                    hashes.add(hash);
+                }
+            }
+
+            return hashes;
+        } catch (IOException exception) {
+            TsaAnticheat.LOGGER.warn(
+                    "Failed to read TSA Anticheat allowed hash list.",
+                    exception
+            );
+            return Set.of();
+        }
+    }
+
     /**
      * Loads the current persistent blacklist using the same normalization as
      * other TSA hash checks.

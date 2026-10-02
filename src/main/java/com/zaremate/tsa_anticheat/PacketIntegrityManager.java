@@ -20,7 +20,6 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import net.neoforged.fml.loading.FMLPaths;
 
-@SuppressWarnings("null")
 public final class PacketIntegrityManager {
     private static final String DOMAIN = "tsa-anticheat:packet-integrity:v1";
     private static final SecureRandom RANDOM = new SecureRandom();

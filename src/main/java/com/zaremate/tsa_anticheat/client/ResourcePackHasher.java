@@ -46,7 +46,7 @@ public final class ResourcePackHasher {
 
         List<? extends ZipEntry> entries = zip.stream()
                 .filter(entry -> !entry.isDirectory())
-                .sorted(Comparator.comparing(ZipEntry::getName))
+                .sorted((left, right) -> left.getName().compareTo(right.getName()))
                 .toList();
 
         for (ZipEntry entry : entries) {

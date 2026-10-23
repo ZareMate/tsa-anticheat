@@ -43,6 +43,18 @@ public final class PacketIntegrityCommands {
                                                 )
                                         )))
                         )
+                        .then(Commands.literal("detection")
+                                .then(Commands.literal("remove")
+                                        .then(Commands.literal("name")
+                                                .then(Commands.argument("name", StringArgumentType.greedyString())
+                                                        .executes(ctx -> removeDetections(ctx.getSource(), "name",
+                                                                StringArgumentType.getString(ctx, "name")))))
+                                        .then(Commands.literal("hash")
+                                                .then(Commands.argument("hash", StringArgumentType.word())
+                                                        .executes(ctx -> removeDetections(ctx.getSource(), "hash",
+                                                                StringArgumentType.getString(ctx, "hash")))))
+                                )
+                        )
                         .then(Commands.literal("detect")
                                 .then(Commands.argument("player", EntityArgument.player())
                                         .executes(context -> startDetection(
@@ -132,6 +144,20 @@ public final class PacketIntegrityCommands {
                                 )
                         )
         );
+    }
+
+    private static int removeDetections(CommandSourceStack source, String selector, String value) {
+        try {
+            DetectionRemoval.Result result = DetectionRemoval.remove(selector, value);
+            source.sendSuccess(() -> Component.literal(
+                    "Removed " + result.detections() + " matching detection(s) across "
+                            + result.players() + " player(s). Blacklist and allowlist unchanged."
+            ), true);
+            return 1;
+        } catch (java.io.IOException | IllegalArgumentException exception) {
+            source.sendFailure(Component.literal("Could not remove detections: " + exception.getMessage()));
+            return 0;
+        }
     }
 
     private static int listKeywords(CommandSourceStack source) {

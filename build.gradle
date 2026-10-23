@@ -39,8 +39,14 @@ neoForge {
 dependencies {
     compileOnly "net.luckperms:api:5.5"
     compileOnly "org.eclipse.jdt:org.eclipse.jdt.annotation:2.4.0"
+    testImplementation "org.junit.jupiter:junit-jupiter:5.11.4"
+    testRuntimeOnly "org.junit.platform:junit-platform-launcher"
 }
 
 tasks.withType(JavaCompile).configureEach {
     options.encoding = "UTF-8"
+}
+
+tasks.named("test", Test) {
+    useJUnitPlatform()
 }

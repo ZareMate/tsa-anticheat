@@ -61,6 +61,12 @@ public final class TsaAnticheatConfig {
                     value -> value instanceof String s && !s.isBlank()
             );
 
+    public static final ModConfigSpec.BooleanValue PACKET_CHECK_ON_LOGIN =
+            BUILDER.comment(
+                    "Automatically check packet integrity shortly after a player logs in.",
+                    "Default: true."
+            ).define("packet_check_on_login", true);
+
     public static final ModConfigSpec.IntValue PACKET_CHECK_TIMEOUT_SECONDS =
             BUILDER.comment(
                     "Maximum time to wait for a packet integrity response.",

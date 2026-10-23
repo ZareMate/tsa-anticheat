@@ -9,7 +9,6 @@ import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Locale;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Stream;
@@ -22,6 +21,17 @@ public final class DetectionRemoval {
     private DetectionRemoval() {}
 
     public static Result remove(String selector, String value) throws IOException {
+        Path directory = FMLPaths.CONFIGDIR.get().resolve(TsaAnticheat.MOD_ID);
+        return removeFrom(directory, selector, value);
+    }
+
+    static Result removeFrom(Path directory, String selector, String value) throws IOException {
+        if (!"name".equals(selector) && !"hash".equals(selector)) {
+            throw new IllegalArgumentException("Unknown detection selector: " + selector);
+        }
+        if (value == null) {
+            throw new IllegalArgumentException("Detection name/hash cannot be empty.");
+        }
         String target = value.trim();
         if (target.isEmpty()) {
             throw new IllegalArgumentException("Detection name/hash cannot be empty.");
@@ -30,7 +40,9 @@ public final class DetectionRemoval {
             throw new IllegalArgumentException("Expected a 64-character SHA-256 hash.");
         }
 
-        Path directory = FMLPaths.CONFIGDIR.get().resolve(TsaAnticheat.MOD_ID);
+        if ("name".equals(selector) && TsaFilenameDetection.sanitizeFilename(target).isEmpty()) {
+            throw new IllegalArgumentException("Detection filename is invalid.");
+        }
         if (!Files.isDirectory(directory)) return new Result(0, 0);
 
         int affectedPlayers = 0;

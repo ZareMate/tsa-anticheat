@@ -139,7 +139,8 @@ public final class DiscordWebhook {
 
         if (!TsaAnticheatConfig.WEBHOOK_ENABLED.get()
                 || url.isBlank()
-                || detections == null) {
+                || detections == null
+                || detections.isEmpty()) {
             return;
         }
 

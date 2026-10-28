@@ -23,6 +23,10 @@ final class HashEnforcement {
     /** Called on the worker after verification, including clean scans. */
     static void finish(PlayerSnapshot player, String report, List<String> detections, String context) {
         try {
+            if (player.bypass()) {
+                notify(player, detections, context, "None — tsa.bypass permission granted.");
+                return;
+            }
             List<String> files = EnforcementPolicy.matchingFiles(report, store().hashes(), store().allowedHashes());
             String mode = EnforcementPolicy.action(TsaAnticheatConfig.ENFORCEMENT_MODE.get(), files);
             if (files.isEmpty() || mode.equals("off")) {
@@ -78,7 +82,7 @@ final class HashEnforcement {
         java.util.concurrent.CompletableFuture<Void> check = TsaWorker.submit(() -> {
             try {
                 EnforcementStore.Ban ban = store().active(profile.getId(), System.currentTimeMillis());
-                if (ban != null && connection.isConnected()) {
+                if (ban != null && !TsaPermissions.hasBypassPermission(profile.getId()) && connection.isConnected()) {
                     disconnectLogin(connection, ban.message());
                     DiscordWebhook.sendDetection(profile.getName(), profile.getId().toString(), List.of(ban.message()),
                             "JOIN — EXISTING TEMPBAN", "Login refused — tempban active until "

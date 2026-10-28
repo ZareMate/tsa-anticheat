@@ -76,7 +76,7 @@ public record XrayReportPayload(String data) implements CustomPacketPayload {
                 continue;
             }
 
-            if (DisabledJarBypass.ignore(type, name) || TsaFilenameDetection.isHashAllowed(hash)) {
+            if (TsaFilenameDetection.isHashAllowed(hash)) {
                 continue;
             }
 
@@ -114,7 +114,7 @@ public record XrayReportPayload(String data) implements CustomPacketPayload {
             writeReport(player, detected);
 
         }
-        HashEnforcement.finish(player, DisabledJarBypass.filterReport(data), detected, "JOIN SCAN");
+        HashEnforcement.finish(player, data, detected, "JOIN SCAN");
     }
 
     private static void writeReport(PlayerSnapshot player, List<String> detected) {

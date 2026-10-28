@@ -138,9 +138,9 @@ public final class PacketIntegrityManager {
             message += " (" + reason + ")";
         }
 
-        // Automatic successful login checks stay quiet for bypassed staff.
+        // Automatic login packet checks stay quiet for bypassed staff.
         // Explicit /tsa packet checks always publish their result.
-        boolean broadcast = requester != null || !player.bypass() || result != Result.PASS;
+        boolean broadcast = requester != null || !player.bypass();
         player.publish(requester, "[TSA] " + message, "[TSA Anticheat] " + message, broadcast);
 
         if (result == Result.MODIFIED || result == Result.TIMEOUT) {

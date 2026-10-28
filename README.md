@@ -112,6 +112,7 @@ webhook_enabled = false
 webhook_url = ""
 command_permission = "tsa_anticheat.command"
 broadcast_permission = "tsa_anticheat.alerts"
+bypass_permission = "tsa.bypass"
 packet_check_timeout_seconds = 5
 ```
 
@@ -120,6 +121,10 @@ Set `webhook_enabled = true` and provide `webhook_url` to enable Discord notific
 
 
 The `command_permission` controls access to all `/tsa` commands. Players with permission level 3 always have access. By default, grant the LuckPerms node `tsa_anticheat.command`.
+## Staff bypass
+
+Grant `tsa.bypass` through LuckPerms (for example, `/lp group admin permission set tsa.bypass true`). This exempts a player from automatic TSA kicks and tempbans, including existing TSA tempban admission checks. Automatic join-scan enforcement notifications and automatic packet-check broadcasts are suppressed for bypassed staff. The scans can still run and detections can still be recorded. Explicit `/tsa detect <player>` and `/tsa packetcheck <player>` continue reporting their results. OP level alone does not grant `tsa.bypass`.
+
 ## Current detection command
 
 Staff can force an immediate client-side scan of a connected player:

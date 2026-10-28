@@ -24,7 +24,9 @@ final class HashEnforcement {
     static void finish(PlayerSnapshot player, String report, List<String> detections, String context) {
         try {
             if (player.bypass()) {
-                notify(player, detections, context, "None — tsa.bypass permission granted.");
+                if (!"JOIN SCAN".equals(context)) {
+                    notify(player, detections, context, "None — tsa.bypass permission granted.");
+                }
                 return;
             }
             List<String> files = EnforcementPolicy.matchingFiles(report, store().hashes(), store().allowedHashes());

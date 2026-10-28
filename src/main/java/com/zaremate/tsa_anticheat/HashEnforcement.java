@@ -1,15 +1,16 @@
 package com.zaremate.tsa_anticheat;
 
-import net.minecraft.network.chat.Component;
-import net.neoforged.fml.loading.FMLPaths;
-import java.util.*;
 import java.io.IOException;
+import java.util.List;
+import java.util.Set;
 
+/** Determines TSA hash violations on the worker, then delegates punishment to Punish on the server thread. */
 final class HashEnforcement {
     private HashEnforcement() {}
 
     static EnforcementStore store() {
-        return new EnforcementStore(FMLPaths.CONFIGDIR.get().resolve(TsaAnticheat.MOD_ID));
+        return new EnforcementStore(net.neoforged.fml.loading.FMLPaths.CONFIGDIR.get()
+                .resolve(TsaAnticheat.MOD_ID));
     }
 
     static Set<String> hashes() {
@@ -20,94 +21,41 @@ final class HashEnforcement {
         }
     }
 
-    /** Called on the worker after verification, including clean scans. */
     static void finish(PlayerSnapshot player, String report, List<String> detections, String context) {
-        try {
-            if (player.bypass()) {
-                if (!"JOIN SCAN".equals(context)) {
-                    notify(player, detections, context, "None — tsa.bypass permission granted.");
-                }
-                return;
+        if (player.bypass()) {
+            if (!"JOIN SCAN".equals(context)) {
+                notify(player, detections, context, "None — tsa.bypass permission granted.");
             }
+            return;
+        }
+        try {
             List<String> files = EnforcementPolicy.matchingFiles(report, store().hashes(), store().allowedHashes());
             String mode = EnforcementPolicy.action(TsaAnticheatConfig.ENFORCEMENT_MODE.get(), files);
-            if (files.isEmpty() || mode.equals("off")) {
+            if (mode.equals("off")) {
                 notify(player, detections, context, files.isEmpty()
                         ? "None — no non-allowlisted enforcement hash matched."
                         : "None — enforcement is disabled.");
                 return;
             }
-            EnforcementStore.Ban ban = null;
-            if (mode.equals("tempban")) {
-                long now = System.currentTimeMillis();
-                ban = store().active(player.uuid(), now);
-                if (ban == null) {
-                    long until = now + TsaAnticheatConfig.TEMPBAN_SECONDS.get().longValue() * 1000L;
-                    ban = new EnforcementStore.Ban(until, EnforcementPolicy.message(mode, files, until));
-                    store().ban(player.uuid(), ban);
-                }
-            }
-            String message = ban == null ? EnforcementPolicy.message(mode, files, 0) : ban.message();
-            String outcome = ban == null ? "Kicked." : "Tempban active until " + java.time.Instant.ofEpochMilli(ban.until()) + ".";
-            boolean persistedBan = ban != null;
-            long expiresAt = ban == null ? Long.MAX_VALUE : ban.until();
-            player.server().execute(() -> {
+            player.onServer(() -> {
+                // Punish reads and writes Minecraft state; never invoke its API from the TSA worker.
                 String result;
-                if (!player.server().isRunning() || player.server().getPlayerList().getPlayer(player.uuid()) != player.connection()
-                        || player.connection().hasDisconnected()) {
-                    result = persistedBan ? outcome + " Player already disconnected; no kick sent."
-                            : "None — player already disconnected.";
-                } else if (persistedBan && expiresAt <= System.currentTimeMillis()) {
-                    result = "None — tempban expired before disconnection.";
-                } else {
-                    try {
-                        player.connection().connection.disconnect(Component.literal(message));
-                        result = outcome;
-                    } catch (Exception error) {
-                        TsaAnticheat.LOGGER.error("Could not disconnect detected player {}", player.uuid(), error);
-                        result = persistedBan ? outcome + " Disconnect failed." : "None — kick failed.";
+                try {
+                    if (TsaPermissions.hasBypassPermission(player.connection())) {
+                        result = "None — tsa.bypass permission granted.";
+                    } else {
+                        result = PunishIntegration.apply(player, mode, files);
                     }
+                } catch (Exception error) {
+                    TsaAnticheat.LOGGER.error("Could not apply Punish enforcement for {}", player.uuid(), error);
+                    result = "None — Punish integration failed; see server log.";
                 }
-                String actual = result;
-                TsaWorker.execute(() -> notify(player, detections, context, actual));
+                String action = result;
+                TsaWorker.execute(() -> notify(player, detections, context, action));
             });
         } catch (Exception error) {
             TsaAnticheat.LOGGER.error("Hash enforcement failed for {}", player.uuid(), error);
-            notify(player, detections, context, "None — enforcement check or persistence failed; see server log.");
-        }
-    }
-
-    /** NeoForge waits for this future before admitting the player to the world. */
-    static void negotiate(net.neoforged.neoforge.event.entity.player.PlayerNegotiationEvent event) {
-        var profile = event.getProfile();
-        var connection = event.getConnection();
-        java.util.concurrent.CompletableFuture<Void> check = TsaWorker.submit(() -> {
-            try {
-                EnforcementStore.Ban ban = store().active(profile.getId(), System.currentTimeMillis());
-                if (ban != null && !TsaPermissions.hasBypassPermission(profile.getId()) && connection.isConnected()) {
-                    disconnectLogin(connection, ban.message());
-                    DiscordWebhook.sendDetection(profile.getName(), profile.getId().toString(), List.of(ban.message()),
-                            "JOIN — EXISTING TEMPBAN", "Login refused — tempban active until "
-                                    + java.time.Instant.ofEpochMilli(ban.until()) + ".");
-                }
-                return null;
-            } catch (IOException error) {
-                throw new java.util.concurrent.CompletionException(error);
-            }
-        });
-        event.enqueueWork(check.exceptionally(error -> {
-            TsaAnticheat.LOGGER.error("Could not check TSA tempban for {}", profile.getId(), error);
-            if (connection.isConnected()) disconnectLogin(connection, "[TSA Anticheat] Cannot verify temporary ban status. Please retry shortly.");
-            return null;
-        }));
-    }
-
-    private static void disconnectLogin(net.minecraft.network.Connection connection, String message) {
-        Component reason = Component.literal(message);
-        if (connection.getPacketListener() instanceof net.minecraft.server.network.ServerLoginPacketListenerImpl login) {
-            login.disconnect(reason);
-        } else {
-            connection.disconnect(reason);
+            notify(player, detections, context, "None — enforcement check failed; see server log.");
         }
     }
 

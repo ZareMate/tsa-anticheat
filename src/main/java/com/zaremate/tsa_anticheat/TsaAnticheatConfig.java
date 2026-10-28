@@ -69,6 +69,12 @@ public final class TsaAnticheatConfig {
                     value -> value instanceof String s && !s.isBlank()
             );
 
+    public static final ModConfigSpec.BooleanValue BYPASS_DISABLED_JARS =
+            BUILDER.comment(
+                    "Ignore MOD entries ending in .jar.disabled during detection and enforcement.",
+                    "Default: true. Can be changed with /tsa disabledjars <true|false>."
+            ).define("bypass_disabled_jars", true);
+
     public static final ModConfigSpec.BooleanValue PACKET_CHECK_ON_LOGIN =
             BUILDER.comment(
                     "Automatically check packet integrity shortly after a player logs in.",

@@ -24,6 +24,12 @@ public final class PacketIntegrityCommands {
                 Commands.literal("tsa")
                         .requires(TsaPermissions::canUseCommands)
                         .then(EnforcementCommands.node())
+                        .then(Commands.literal("disabledjars")
+                                .executes(context -> disabledJars(context.getSource(), null))
+                                .then(Commands.literal("true")
+                                        .executes(context -> disabledJars(context.getSource(), true)))
+                                .then(Commands.literal("false")
+                                        .executes(context -> disabledJars(context.getSource(), false))))
                         .then(Commands.literal("packetcheck")
                                 .then(Commands.argument("player", EntityArgument.player())
                                         .executes(context -> startCheck(
@@ -145,6 +151,18 @@ public final class PacketIntegrityCommands {
                                 )
                         )
         );
+    }
+
+    private static int disabledJars(CommandSourceStack source, Boolean value) {
+        if (value != null) {
+            TsaAnticheatConfig.BYPASS_DISABLED_JARS.set(value);
+            TsaAnticheatConfig.BYPASS_DISABLED_JARS.save();
+        }
+        boolean enabled = TsaAnticheatConfig.BYPASS_DISABLED_JARS.get();
+        source.sendSuccess(() -> Component.literal(
+                "Disabled JAR detection bypass is " + (enabled ? "enabled" : "disabled") + "."
+        ), false);
+        return 1;
     }
 
     private record CommandReply(CommandSourceStack source, net.minecraft.server.MinecraftServer server) {

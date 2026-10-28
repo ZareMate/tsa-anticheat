@@ -66,6 +66,25 @@ Allowlist entries are sanitized using the same rules, then compared exactly agai
 
 A filename match is independent of the existing hash blacklist. An already-blacklisted hash still detects even when its current filename is allowlisted. For a new keyword filename match, TSA immediately persists the observed SHA-256 hash to \`blacklisted_hashes.txt\`, so later scans continue to detect that file even after it is renamed.
 
+## Disabled JAR bypass
+
+By default, TSA ignores files reported as `MOD` whose filenames end in
+`.jar.disabled` (case-insensitive). This bypass applies to normal join scans,
+manual `/tsa detect`, and hash enforcement. Disabled files do not produce
+detections, blacklist learning, or punishments. Normal `.jar` files and
+resource packs remain checked. The `/tsa hash` command still hashes files
+normally even when the bypass is enabled.
+
+```text
+/tsa disabledjars           # show current setting
+/tsa disabledjars true      # ignore .jar.disabled mods
+/tsa disabledjars false     # scan .jar.disabled mods as usual
+```
+
+The setting is persisted in `config/tsa_anticheat-common.toml` as
+`bypass_disabled_jars = true`, and uses the existing
+`tsa_anticheat.command` permission (or OP level 3).
+
 ## Packet integrity check
 
 Operators can manually challenge a connected client with:

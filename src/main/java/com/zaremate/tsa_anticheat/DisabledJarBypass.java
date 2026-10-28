@@ -12,11 +12,19 @@ final class DisabledJarBypass {
     }
 
     static boolean ignore(String type, String name) {
-        return TsaAnticheatConfig.BYPASS_DISABLED_JARS.get() && isDisabledJar(type, name);
+        return ignore(type, name, TsaAnticheatConfig.BYPASS_DISABLED_JARS.get());
+    }
+
+    static boolean ignore(String type, String name, boolean enabled) {
+        return enabled && isDisabledJar(type, name);
     }
 
     static String filterReport(String report) {
-        if (!TsaAnticheatConfig.BYPASS_DISABLED_JARS.get()) return report;
+        return filterReport(report, TsaAnticheatConfig.BYPASS_DISABLED_JARS.get());
+    }
+
+    static String filterReport(String report, boolean enabled) {
+        if (!enabled) return report;
         StringBuilder result = new StringBuilder();
         for (String line : report.split("\\R")) {
             int first = line.indexOf('\t');

@@ -26,5 +26,11 @@ class DisabledJarBypassTest {
         String input = String.join("\n", disabled, enabled, pack);
         assertEquals(String.join("\n", enabled, pack), DisabledJarBypass.filterReport(input, true));
         assertEquals(input, DisabledJarBypass.filterReport(input, false));
+        assertEquals(java.util.List.of("Cheat.jar", "Texture.jar.disabled"),
+                EnforcementPolicy.matchingFiles(DisabledJarBypass.filterReport(input, true),
+                        java.util.Set.of(hash), java.util.Set.of()));
+        assertEquals(java.util.List.of("Cheat.jar.disabled", "Cheat.jar", "Texture.jar.disabled"),
+                EnforcementPolicy.matchingFiles(DisabledJarBypass.filterReport(input, false),
+                        java.util.Set.of(hash), java.util.Set.of()));
     }
 }

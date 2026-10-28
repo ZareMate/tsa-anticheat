@@ -68,17 +68,17 @@ A filename match is independent of the existing hash blacklist. An already-black
 
 ## Disabled JAR bypass
 
-By default, TSA ignores files reported as `MOD` whose filenames end in
-`.jar.disabled` (case-insensitive). This bypass applies to normal join scans,
-manual `/tsa detect`, and hash enforcement. Disabled files do not produce
-detections, blacklist learning, or punishments. Normal `.jar` files and
-resource packs remain checked. The `/tsa hash` command still hashes files
-normally even when the bypass is enabled.
+By default, TSA exempts files reported as `MOD` whose filenames end in
+`.jar.disabled` (case-insensitive) **from kick/tempban enforcement only**.
+Automatic join scans and manual `/tsa detect` still report these files,
+record detections, and send Discord webhooks when a detection is found.
+Normal `.jar` files and resource packs remain fully enforced. The `/tsa hash`
+command works normally regardless of this setting.
 
 ```text
 /tsa disabledjars           # show current setting
-/tsa disabledjars true      # ignore .jar.disabled mods
-/tsa disabledjars false     # scan .jar.disabled mods as usual
+/tsa disabledjars true      # exempt .jar.disabled mods from punishment
+/tsa disabledjars false     # allow punishment for .jar.disabled mods
 ```
 
 The setting is persisted in `config/tsa_anticheat-common.toml` as

@@ -1,4 +1,4 @@
-package com.zaremate.tsa_anticheat.client;
+package com.zaremate.tsa_anticheat;
 
 import java.io.IOException;
 import java.io.InputStream;

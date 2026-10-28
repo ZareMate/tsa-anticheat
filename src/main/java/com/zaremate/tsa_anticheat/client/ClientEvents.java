@@ -1,5 +1,7 @@
 package com.zaremate.tsa_anticheat.client;
 
+import com.zaremate.tsa_anticheat.ResourcePackHasher;
+
 import com.zaremate.tsa_anticheat.XrayReportPayload;
 import net.minecraft.client.Minecraft;
 import net.neoforged.bus.api.SubscribeEvent;

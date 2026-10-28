@@ -1,5 +1,7 @@
 package com.zaremate.tsa_anticheat.client;
 
+import com.zaremate.tsa_anticheat.ResourcePackHasher;
+
 import com.zaremate.tsa_anticheat.HashRequestPayload;
 import com.zaremate.tsa_anticheat.HashResponsePayload;
 import com.zaremate.tsa_anticheat.PacketIntegrityChallengePayload;

@@ -23,6 +23,7 @@ public final class PacketIntegrityCommands {
         dispatcher.register(
                 Commands.literal("tsa")
                         .requires(TsaPermissions::canUseCommands)
+                        .then(EnforcementCommands.node())
                         .then(Commands.literal("packetcheck")
                                 .then(Commands.argument("player", EntityArgument.player())
                                         .executes(context -> startCheck(
@@ -146,7 +147,37 @@ public final class PacketIntegrityCommands {
         );
     }
 
+    private record CommandReply(CommandSourceStack source, net.minecraft.server.MinecraftServer server) {
+        void sendSuccess(java.util.function.Supplier<Component> message, boolean broadcast) {
+            server.execute(() -> {
+                if (server.isRunning()) source.sendSuccess(message, broadcast);
+            });
+        }
+
+        void sendFailure(Component message) {
+            server.execute(() -> {
+                if (server.isRunning()) source.sendFailure(message);
+            });
+        }
+    }
+
+    private static int runAsync(CommandSourceStack source,
+                                java.util.function.ToIntFunction<CommandReply> action) {
+        CommandReply reply = new CommandReply(source, source.getServer());
+        TsaWorker.submit(() -> action.applyAsInt(reply)).whenComplete((result, error) -> {
+            if (error != null) {
+                TsaAnticheat.LOGGER.error("TSA command failed", error);
+                reply.sendFailure(Component.literal("TSA command failed; see server log."));
+            }
+        });
+        return 1;
+    }
+
     private static int removeDetections(CommandSourceStack source, String selector, String value) {
+        return runAsync(source, reply -> removeDetections(reply, selector, value));
+    }
+
+    private static int removeDetections(CommandReply source, String selector, String value) {
         try {
             DetectionRemoval.Result result = DetectionRemoval.remove(selector, value);
             source.sendSuccess(() -> Component.literal(
@@ -161,6 +192,10 @@ public final class PacketIntegrityCommands {
     }
 
     private static int listKeywords(CommandSourceStack source) {
+        return runAsync(source, reply -> listKeywords(reply));
+    }
+
+    private static int listKeywords(CommandReply source) {
         java.util.List<String> keywords = TsaAnticheatConfig.filenameDetectionKeywords();
         source.sendSuccess(
                 () -> Component.literal(
@@ -174,6 +209,10 @@ public final class PacketIntegrityCommands {
     }
 
     private static int addKeyword(CommandSourceStack source, String keyword) {
+        return runAsync(source, reply -> addKeyword(reply, keyword));
+    }
+
+    private static int addKeyword(CommandReply source, String keyword) {
         String sanitized = TsaFilenameDetection.sanitizeFilename(keyword);
         if (sanitized.isEmpty()) {
             source.sendFailure(Component.literal("Keyword cannot be empty after sanitization."));
@@ -193,6 +232,10 @@ public final class PacketIntegrityCommands {
     }
 
     private static int removeKeyword(CommandSourceStack source, String keyword) {
+        return runAsync(source, reply -> removeKeyword(reply, keyword));
+    }
+
+    private static int removeKeyword(CommandReply source, String keyword) {
         String sanitized = TsaFilenameDetection.sanitizeFilename(keyword);
         if (sanitized.isEmpty()) {
             source.sendFailure(Component.literal("Keyword cannot be empty after sanitization."));
@@ -224,10 +267,11 @@ public final class PacketIntegrityCommands {
         return allowName(source, value);
     }
 
-    private static int allowName(
-            CommandSourceStack source,
-            String name
-    ) {
+    private static int allowName(CommandSourceStack source, String name) {
+        return runAsync(source, reply -> allowName(reply, name));
+    }
+
+    private static int allowName(CommandReply source, String name) {
         String cleanName = name.trim();
 
         if (cleanName.isEmpty()) {
@@ -257,10 +301,11 @@ public final class PacketIntegrityCommands {
         return 1;
     }
 
-    private static int allowHash(
-            CommandSourceStack source,
-            String hash
-    ) {
+    private static int allowHash(CommandSourceStack source, String hash) {
+        return runAsync(source, reply -> allowHash(reply, hash));
+    }
+
+    private static int allowHash(CommandReply source, String hash) {
         String normalized = hash.trim().toLowerCase(java.util.Locale.ROOT);
 
         if (!normalized.matches("[0-9a-f]{64}")) {

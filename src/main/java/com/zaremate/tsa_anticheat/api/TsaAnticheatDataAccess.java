@@ -2,7 +2,6 @@ package com.zaremate.tsa_anticheat.api;
 
 import com.zaremate.tsa_anticheat.TsaAnticheat;
 import net.neoforged.fml.loading.FMLPaths;
-import net.neoforged.neoforge.server.ServerLifecycleHooks;
 
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -12,7 +11,6 @@ import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.UUID;
 
 final class TsaAnticheatDataAccess {
@@ -25,14 +23,6 @@ final class TsaAnticheatDataAccess {
             FMLPaths.CONFIGDIR.get().resolve(TsaAnticheat.MOD_ID);
 
     private TsaAnticheatDataAccess() {}
-
-    static TsaAnticheatAPI.PlayerRecord getPlayer(UUID uuid) {
-        if (uuid == null) {
-            return null;
-        }
-
-        return loadAll().get(uuid);
-    }
 
     static List<TsaAnticheatAPI.PlayerRecord> getPlayers() {
         return List.copyOf(loadAll().values());
@@ -165,16 +155,6 @@ final class TsaAnticheatDataAccess {
     }
 
     private static String resolveName(UUID uuid) {
-        var server = ServerLifecycleHooks.getCurrentServer();
-
-        if (server != null) {
-            var player = server.getPlayerList().getPlayer(Objects.requireNonNull(uuid));
-
-            if (player != null) {
-                return player.getGameProfile().getName();
-            }
-        }
-
-        return uuid.toString();
+        return com.zaremate.tsa_anticheat.EventHandlers.playerName(uuid);
     }
 }

@@ -22,7 +22,8 @@ public final class DiscordWebhook {
         String description = "Player: **" + escapeMarkdown(player) + "**\n"
                 + "UUID: `" + escapeMarkdown(uuid) + "`\n"
                 + "Check: **PACKET INTEGRITY**\n"
-                + "Status: **" + escapeMarkdown(status) + "**\n\n"
+                + "Status: **" + escapeMarkdown(status) + "**\n"
+                + "Action taken: **None (packet integrity checks do not trigger hash enforcement).**\n\n"
                 + escapeMarkdown(details);
 
         String json = "{"
@@ -130,30 +131,19 @@ public final class DiscordWebhook {
     public static void sendDetection(
             String player,
             String uuid,
-            List<String> detections
+            List<String> detections,
+            String context,
+            String action
     ) {
         String url = TsaAnticheatConfig.webhookUrl();
 
         if (!TsaAnticheatConfig.WEBHOOK_ENABLED.get()
                 || url.isBlank()
-                || detections == null
-                || detections.isEmpty()) {
+                || detections == null) {
             return;
         }
 
-        StringBuilder details = new StringBuilder();
-        for (String detection : detections) {
-            if (details.length() > 0) {
-                details.append("\n");
-            }
-            details.append("- ").append(escapeMarkdown(detection));
-        }
-
-        String description = "Player: **" + escapeMarkdown(player) + "**\n"
-                + "UUID: `" + escapeMarkdown(uuid) + "`\n"
-                + "Check: **CURRENT DETECTION SCAN**\n"
-                + "Status: **DETECTED**\n\n"
-                + details;
+        String description = DetectionNotice.description(player, uuid, detections, context, action);
 
         String json = "{"
                 + "\"username\":\"TSA Anticheat\","

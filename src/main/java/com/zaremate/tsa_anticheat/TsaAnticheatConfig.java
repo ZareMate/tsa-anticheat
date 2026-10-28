@@ -73,6 +73,14 @@ public final class TsaAnticheatConfig {
                     "Default: 5 seconds."
             ).defineInRange("packet_check_timeout_seconds", 5, 1, 300);
 
+    public static final ModConfigSpec.ConfigValue<String> ENFORCEMENT_MODE = BUILDER
+            .comment("Manual enforcement-hash action: off, kick, or tempban. Hash allowlists take precedence.")
+            .define("enforcement_mode", "off", value -> value instanceof String mode
+                    && List.of("off", "kick", "tempban").contains(mode));
+    public static final ModConfigSpec.IntValue TEMPBAN_SECONDS = BUILDER
+            .comment("Duration of new TSA tempbans, in seconds. Existing bans keep their original expiry.")
+            .defineInRange("tempban_seconds", 3600, 1, 31_536_000);
+
     public static final ModConfigSpec SPEC = BUILDER.build();
 
     private TsaAnticheatConfig() {

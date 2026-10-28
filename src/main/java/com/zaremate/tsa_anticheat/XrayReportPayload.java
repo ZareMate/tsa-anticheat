@@ -39,14 +39,16 @@ public record XrayReportPayload(String data) implements CustomPacketPayload {
     public static void handle(XrayReportPayload payload, IPayloadContext context) {
         context.enqueueWork(() -> {
             if (context.player() instanceof ServerPlayer player) {
-                verifyAndWriteReports(player, payload.data());
+                PlayerSnapshot snapshot = PlayerSnapshot.capture(player);
+                TsaWorker.execute(() -> verifyAndWriteReports(snapshot, payload.data()));
             }
         });
     }
 
-    private static void verifyAndWriteReports(ServerPlayer player, String data) {
-        Set<String> blacklistedHashes = TsaFilenameDetection.loadBlacklistedHashes();
+    private static void verifyAndWriteReports(PlayerSnapshot player, String data) {
+        Set<String> blacklistedHashes = new java.util.HashSet<>(TsaFilenameDetection.loadBlacklistedHashes());
 
+        Set<String> enforcementHashes = HashEnforcement.hashes();
         List<String> detected = new ArrayList<>();
 
         for (String line : data.split("\\R")) {
@@ -92,7 +94,7 @@ public record XrayReportPayload(String data) implements CustomPacketPayload {
                 }
             }
 
-            if (hashBlacklistedBeforeFilenameCheck || filenameMatched) {
+            if (hashBlacklistedBeforeFilenameCheck || filenameMatched || enforcementHashes.contains(hash)) {
                 String reason = hashBlacklistedBeforeFilenameCheck
                         ? (filenameMatched
                         ? " (hash already known to server; filename contains \"" + filenameKeyword + "\")"
@@ -101,6 +103,7 @@ public record XrayReportPayload(String data) implements CustomPacketPayload {
                         ? " (filename contains \"" + filenameKeyword + "\"; hash newly added to blacklist)"
                         : " (filename contains \"" + filenameKeyword + "\"; hash could not be added to blacklist)");
 
+                if (enforcementHashes.contains(hash)) reason = " (manually listed enforcement hash)";
                 String detection = type + " " + name + " [" + hash + "]" + reason;
                 detected.add(detection);
 
@@ -110,17 +113,13 @@ public record XrayReportPayload(String data) implements CustomPacketPayload {
         if (!detected.isEmpty()) {
             writeReport(player, detected);
 
-            DiscordWebhook.sendDetection(
-                    player.getGameProfile().getName(),
-                    player.getUUID().toString(),
-                    detected
-            );
         }
+        HashEnforcement.finish(player, data, detected, "JOIN SCAN");
     }
 
-    private static void writeReport(ServerPlayer player, List<String> detected) {
+    private static void writeReport(PlayerSnapshot player, List<String> detected) {
         Path directory = FMLPaths.CONFIGDIR.get().resolve(TsaAnticheat.MOD_ID);
-        Path file = directory.resolve(player.getUUID() + ".txt");
+        Path file = directory.resolve(player.uuid() + ".txt");
         String line = LocalDate.now() + " | DETECTED | " + String.join(", ", detected);
 
         try {
@@ -144,7 +143,7 @@ public record XrayReportPayload(String data) implements CustomPacketPayload {
         } catch (IOException exception) {
             System.err.println(
                     "Failed to write TSA Anticheat report for " +
-                    player.getGameProfile().getName()
+                    player.name()
             );
             exception.printStackTrace();
         }

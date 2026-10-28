@@ -323,3 +323,97 @@ gradle clean build
 ```
 
 The built mod is placed in `build/libs/`.
+
+### Server threading
+
+TSA uses one bounded `tsa-anticheat-worker` thread for detection parsing,
+blacklist/allowlist file access, generated hashes, report writes/removals,
+packet-integrity verification and expiry, keyword persistence, and history
+refreshes. Work is ordered so TSA's report writes and removals cannot overwrite
+each other. The queue holds up to 1,024 waiting jobs; overload rejects work and
+logs an error instead of running it on the tick thread. Admin commands report
+background failures to their source.
+
+Minecraft player lookup, permissions, packet sends, chat delivery, and the small
+login-delay scheduler remain on the server thread. Async work captures player
+identity first; direct replies and challenges are discarded if that connection
+has left. Packet response timeout checks use the response receipt time, excluding
+worker queue delay. Accepted jobs drain during server shutdown, and pending checks
+and cached history are reset between server sessions.
+
+File-changing admin commands now return `1` when submitted; their final success
+or failure arrives asynchronously in chat/console. Command-chain return values
+therefore indicate submission rather than the eventual file operation result.
+
+`TsaAnticheatAPI.getPlayer` and `getPlayers` now return an immutable cached history
+snapshot without disk access. It refreshes at startup and every 20 server ticks
+(subject to worker backlog), and is initially empty. Integrations needing fresh
+history should use `getPlayerAsync(UUID)` or `getPlayersAsync()`. Never call
+`join()`/`get()` on those futures from the server thread; schedule any Minecraft
+state changes from their callbacks back onto the server. Low-level storage helpers
+remain synchronous and must only be called from background work.
+
+### Automatically allow server files
+
+At every server start, TSA hashes all immediate entries in the server directory's
+`mods/` and `resourcepacks/` folders (not `/mods` at the filesystem root). Files,
+JAR/ZIP archives, and directory packs use the same content hashing algorithm as
+client detection. Archive metadata/order does not change the hash; directory packs
+include their relative file paths and contents.
+
+The scan runs first on the TSA background worker, before queued detection work.
+Hashes are merged into `config/tsa_anticheat/allowed_hashes.txt`, preserving manual
+entries and comments. These hashes override both blacklist and filename detections.
+Existing detection history and the blacklist are not deleted. Exemptions persist
+if files are removed; newly added or changed files are scanned on the next restart.
+Missing folders are skipped, unreadable entries are logged, and the server log
+reports the number hashed, newly allowed, and failed.
+
+### Manual hash enforcement: kick and tempban
+
+Enforcement is **off by default**. Only hashes explicitly listed in
+`config/tsa_anticheat/enforcement_hashes.txt` qualify. Neither filename matches,
+learned blacklist hashes, nor failed packet checks populate that list or trigger
+punishment on their own. Both automatic client join reports and `/tsa detect`
+check it. Hash allowlists, including automatically allowed server files, take
+precedence; filename allowlisting alone does not exempt a prohibited hash.
+
+Commands use the existing `/tsa` permission (`tsa_anticheat.command`, or OP level 3):
+
+```text
+/tsa enforcement                             # show status
+/tsa enforcement status
+/tsa enforcement hash add <sha256>
+/tsa enforcement hash remove <sha256>
+/tsa enforcement hash list
+/tsa enforcement mode off
+/tsa enforcement mode kick
+/tsa enforcement mode tempban
+/tsa enforcement kick true                   # enables kick, disables tempban
+/tsa enforcement kick false                  # disables kick if currently selected
+/tsa enforcement tempban true                # enables tempban, disables kick
+/tsa enforcement tempban false
+/tsa enforcement duration 30m                # seconds, s, m, h, or d; maximum 365d
+/tsa enforcement unban <player-uuid>
+```
+
+The mode and duration persist in the common config as `enforcement_mode` and
+`tempban_seconds` (default 3600). Commands finish asynchronously. Changing modes,
+durations, or the hash list does not clear existing tempbans or extend their expiry.
+Kick/tempban disconnect messages name the offending files, never their hashes.
+Multiple matching files produce one action per report.
+
+TSA tempbans are UUID-based and stored separately in
+`config/tsa_anticheat/tempbans.properties`; use `/tsa enforcement unban`, not vanilla
+`/pardon`, to remove them early. NeoForge login negotiation waits asynchronously for
+the ban check before allowing entry, including when no client detection report is
+sent. Expired bans stop applying automatically. If the ban store cannot be checked,
+login is refused with a retry message rather than admitting a potentially banned
+player. Storage and policy work remain on the worker; in-game disconnections run
+on the server thread. Initial hash detection still relies on the client's report.
+
+With webhooks enabled, join scans and manual scans identify their context and
+include **Action taken**: none (and why), kicked, tempban expiry, or a failure.
+Clean reported scans also send an explicit no-action result. Rejoining during an
+active tempban reports the refused login. Webhooks report the result of the
+actual disconnect attempt, and large detection lists are truncated to fit Discord.

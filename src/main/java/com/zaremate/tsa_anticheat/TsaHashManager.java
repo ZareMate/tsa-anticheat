@@ -20,6 +20,10 @@ public final class TsaHashManager {
     private static final Map<UUID, PendingRequest> PENDING =
             new ConcurrentHashMap<>();
 
+    static void forget(UUID uuid) { PENDING.remove(uuid); }
+
+    static void clear() { PENDING.clear(); }
+
     private TsaHashManager() {
     }
 
@@ -59,7 +63,13 @@ public final class TsaHashManager {
             ServerPlayer player,
             HashResponsePayload response
     ) {
+        PlayerSnapshot snapshot = PlayerSnapshot.capture(player);
         PendingRequest pending = PENDING.remove(player.getUUID());
+        if (pending == null) return;
+        TsaWorker.execute(() -> processResponse(snapshot, pending, response));
+    }
+
+    private static void processResponse(PlayerSnapshot player, PendingRequest pending, HashResponsePayload response) {
 
         if (pending == null) {
             return;
@@ -153,10 +163,11 @@ public final class TsaHashManager {
     }
 
     private static void handleDetectionResponse(
-            ServerPlayer target,
+            PlayerSnapshot target,
             UUID requester,
             HashResponsePayload response
     ) {
+        var enforcementHashes = HashEnforcement.hashes();
         List<String> detections = new ArrayList<>();
 
         for (String line : response.results().split("\\R")) {
@@ -173,9 +184,9 @@ public final class TsaHashManager {
                 continue;
             }
 
-            String type = line.substring(0, firstSeparator).trim();
+            String type = line.substring(0, firstSeparator).trim().toUpperCase(java.util.Locale.ROOT);
             String name = line.substring(firstSeparator + 1, lastSeparator);
-            String hash = line.substring(lastSeparator + 1).trim().toLowerCase();
+            String hash = line.substring(lastSeparator + 1).trim().toLowerCase(java.util.Locale.ROOT);
 
             if (!("MOD".equals(type) || "RESOURCE_PACK".equals(type))
                     || !hash.matches("[0-9a-f]{64}")) {
@@ -196,10 +207,12 @@ public final class TsaHashManager {
                         TsaFilenameDetection.addHashToBlacklist(hash);
             }
 
-            if (hashBlacklistedBeforeFilenameCheck || filenameMatched) {
+            if (hashBlacklistedBeforeFilenameCheck || filenameMatched || enforcementHashes.contains(hash)) {
                 String detection = type + " " + name + " [" + hash + "]";
 
-                if (hashBlacklistedBeforeFilenameCheck && filenameMatched) {
+                if (enforcementHashes.contains(hash)) {
+                    detection += " (manually listed enforcement hash)";
+                } else if (hashBlacklistedBeforeFilenameCheck && filenameMatched) {
                     detection += " (hash already known to server; filename contains \""
                             + filenameKeyword + "\")";
                 } else if (hashBlacklistedBeforeFilenameCheck) {
@@ -216,16 +229,12 @@ public final class TsaHashManager {
             }
         }
 
-        String playerName = target.getGameProfile().getName();
+        String playerName = target.name();
 
         if (detections.isEmpty()) {
-            notifyDetectionResult(
-                    requester,
-                    playerName + " is clean. No blacklisted mods or resource packs detected."
-            );
-            broadcastDetection(
-                    playerName + " is clean. No blacklisted mods or resource packs detected."
-            );
+            String clean = playerName + " is clean. No blacklisted mods or resource packs detected.";
+            target.publish(requester, clean, clean);
+            HashEnforcement.finish(target, response.results(), detections, "MANUAL DETECTION SCAN");
             return;
         }
 
@@ -245,13 +254,8 @@ public final class TsaHashManager {
 
         String result = message.toString();
 
-        notifyDetectionResult(requester, "[TSA Anticheat] " + result);
-        broadcastDetection("[TSA Anticheat] " + result);
-        DiscordWebhook.sendDetection(
-                playerName,
-                target.getUUID().toString(),
-                detections
-        );
+        target.publish(requester, "[TSA Anticheat] " + result, "[TSA Anticheat] " + result);
+        HashEnforcement.finish(target, response.results(), detections, "MANUAL DETECTION SCAN");
     }
 
     private static boolean isBlacklisted(String hash) {
@@ -267,7 +271,7 @@ public final class TsaHashManager {
                     hashesFile,
                     StandardCharsets.UTF_8
             )) {
-                String candidate = line.trim().toLowerCase();
+                String candidate = line.trim().toLowerCase(java.util.Locale.ROOT);
 
                 if (candidate.equals(hash)) {
                     return true;
@@ -284,12 +288,12 @@ public final class TsaHashManager {
     }
 
     private static void writeDetectionReport(
-            ServerPlayer player,
+            PlayerSnapshot player,
             List<String> detections
     ) {
         Path directory =
                 FMLPaths.CONFIGDIR.get().resolve(TsaAnticheat.MOD_ID);
-        Path file = directory.resolve(player.getUUID() + ".txt");
+        Path file = directory.resolve(player.uuid() + ".txt");
 
         String line = LocalDate.now() +
                 " | DETECTED | " +
@@ -308,53 +312,9 @@ public final class TsaHashManager {
         } catch (Exception exception) {
             TsaAnticheat.LOGGER.warn(
                     "Failed to write TSA Anticheat detection report for {}",
-                    player.getGameProfile().getName(),
+                    player.name(),
                     exception
             );
-        }
-    }
-
-    private static void notifyDetectionResult(
-            UUID requester,
-            String message
-    ) {
-        if (requester == null) {
-            return;
-        }
-
-        var server =
-                net.neoforged.neoforge.server.ServerLifecycleHooks
-                        .getCurrentServer();
-
-        if (server == null) {
-            return;
-        }
-
-        ServerPlayer requesterPlayer =
-                server.getPlayerList().getPlayer(requester);
-
-        if (requesterPlayer != null) {
-            requesterPlayer.sendSystemMessage(
-                    Component.literal(message)
-            );
-        }
-    }
-
-    private static void broadcastDetection(String message) {
-        var server =
-                net.neoforged.neoforge.server.ServerLifecycleHooks
-                        .getCurrentServer();
-
-        if (server == null) {
-            return;
-        }
-
-        for (ServerPlayer player : server.getPlayerList().getPlayers()) {
-            if (TsaPermissions.hasBroadcastPermission(player)) {
-                player.sendSystemMessage(
-                        Component.literal(message)
-                );
-            }
         }
     }
 

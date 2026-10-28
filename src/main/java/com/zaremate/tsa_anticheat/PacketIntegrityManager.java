@@ -1,6 +1,5 @@
 package com.zaremate.tsa_anticheat;
 
-import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
 import net.neoforged.neoforge.network.PacketDistributor;
 
@@ -31,32 +30,32 @@ public final class PacketIntegrityManager {
     }
 
     public static void start(ServerPlayer player, UUID requester) {
-        String challenge = randomChallenge();
-
-        PENDING.put(
-                player.getUUID(),
-                new PendingCheck(
-                        challenge,
-                        System.currentTimeMillis(),
-                        player.getGameProfile().getName(),
-                        requester
-                )
-        );
-
-        PacketDistributor.sendToPlayer(
-                player,
-                new PacketIntegrityChallengePayload(challenge)
-        );
+        PlayerSnapshot snapshot = PlayerSnapshot.capture(player);
+        TsaWorker.execute(() -> {
+            String challenge = randomChallenge();
+            snapshot.onServer(() -> {
+                PENDING.put(snapshot.uuid(), new PendingCheck(challenge,
+                        System.currentTimeMillis(), snapshot, requester));
+                PacketDistributor.sendToPlayer(player, new PacketIntegrityChallengePayload(challenge));
+            });
+        });
     }
 
-    public static Result handleResponse(ServerPlayer player, PacketIntegrityResponsePayload response) {
+    public static void handleResponse(ServerPlayer player, PacketIntegrityResponsePayload response) {
         PendingCheck pending = PENDING.remove(player.getUUID());
+        if (pending == null) return;
+        long receivedAt = System.currentTimeMillis();
+        PlayerSnapshot snapshot = PlayerSnapshot.capture(player);
+        TsaWorker.execute(() -> processResponse(snapshot, pending, response, receivedAt));
+    }
 
+    private static Result processResponse(PlayerSnapshot player, PendingCheck pending,
+                                         PacketIntegrityResponsePayload response, long receivedAt) {
         if (pending == null) {
             return Result.NO_CHECK;
         }
 
-        long elapsed = System.currentTimeMillis() - pending.createdAt();
+        long elapsed = receivedAt - pending.createdAt();
 
         if (elapsed > TsaAnticheatConfig.packetCheckTimeoutMillis()) {
             finish(player, pending, Result.TIMEOUT,
@@ -70,7 +69,7 @@ public final class PacketIntegrityManager {
             return Result.MODIFIED;
         }
 
-        String expected = createResponse(player.getUUID(), pending.challenge());
+        String expected = createResponse(player.uuid(), pending.challenge());
 
         if (!constantTimeEquals(expected, response.response())) {
             finish(player, pending, Result.MODIFIED, "response hash was modified");
@@ -81,23 +80,30 @@ public final class PacketIntegrityManager {
         return Result.PASS;
     }
 
+    private static final java.util.concurrent.atomic.AtomicBoolean EXPIRING =
+            new java.util.concurrent.atomic.AtomicBoolean();
+
     public static void expireChecks() {
+        if (!EXPIRING.compareAndSet(false, true)) return;
         long now = System.currentTimeMillis();
-
-        PENDING.entrySet().removeIf(entry -> {
-            PendingCheck pending = entry.getValue();
-
-            if (now - pending.createdAt() <=
-                    TsaAnticheatConfig.packetCheckTimeoutMillis()) {
-                return false;
-            }
-
-            String reason = "no response received within " +
-                    TsaAnticheatConfig.packetCheckTimeoutText();
-            writeResult(pending.playerName(), entry.getKey(), Result.TIMEOUT, reason);
-            publishResult(pending.playerName(), entry.getKey(), Result.TIMEOUT, reason, pending.requester());
-            return true;
+        TsaWorker.submit(() -> {
+            PENDING.forEach((uuid, pending) -> {
+                if (now - pending.createdAt() > TsaAnticheatConfig.packetCheckTimeoutMillis()
+                        && PENDING.remove(uuid, pending)) {
+                    String reason = "no response received within " + TsaAnticheatConfig.packetCheckTimeoutText();
+                    finish(pending.player(), pending, Result.TIMEOUT, reason);
+                }
+            });
+            return null;
+        }).whenComplete((ignored, error) -> {
+            EXPIRING.set(false);
+            if (error != null) TsaAnticheat.LOGGER.error("Failed to expire packet checks", error);
         });
+    }
+
+    static void clear() {
+        PENDING.clear();
+        EXPIRING.set(false);
     }
 
     public static String createResponse(UUID playerUuid, String challenge) {
@@ -105,33 +111,34 @@ public final class PacketIntegrityManager {
     }
 
     private static void finish(
-            ServerPlayer player,
+            PlayerSnapshot player,
             PendingCheck pending,
             Result result,
             String reason
     ) {
-        writeResult(player.getGameProfile().getName(), player.getUUID(), result, reason);
+        writeResult(player.name(), player.uuid(), result, reason);
 
         String message = "Packet integrity check for " +
-                player.getGameProfile().getName() +
+                player.name() +
                 ": " + result;
 
         if (result == Result.MODIFIED) {
             message += " (" + reason + ")";
         }
 
-        publishResult(player.getGameProfile().getName(), player.getUUID(), result, reason, pending.requester());
+        publishResult(player, result, reason, pending.requester());
         System.out.println("[TSA Anticheat] " + message);
     }
 
-    private static void publishResult(String playerName, UUID playerUuid, Result result, String reason, UUID requester) {
+    private static void publishResult(PlayerSnapshot player, Result result, String reason, UUID requester) {
+        String playerName = player.name();
+        UUID playerUuid = player.uuid();
         String message = "Packet integrity check for " + playerName + ": " + result;
         if (result == Result.MODIFIED) {
             message += " (" + reason + ")";
         }
 
-        notifyRequester(requester, message);
-        broadcast(message);
+        player.publish(requester, "[TSA] " + message, "[TSA Anticheat] " + message);
 
         if (result == Result.MODIFIED || result == Result.TIMEOUT) {
             DiscordWebhook.send(
@@ -140,39 +147,6 @@ public final class PacketIntegrityManager {
                     result.name(),
                     reason
             );
-        }
-    }
-
-    private static void broadcast(String message) {
-        var server = net.neoforged.neoforge.server.ServerLifecycleHooks.getCurrentServer();
-        if (server == null) return;
-
-        for (ServerPlayer player : server.getPlayerList().getPlayers()) {
-            if (hasBroadcastPermission(player)) {
-                player.sendSystemMessage(Component.literal("[TSA Anticheat] " + message));
-            }
-        }
-    }
-
-    private static boolean hasBroadcastPermission(ServerPlayer player) {
-        return TsaPermissions.hasBroadcastPermission(player);
-    }
-
-    private static void notifyRequester(UUID requester, String message) {
-        if (requester == null) {
-            return;
-        }
-
-        var server = net.neoforged.neoforge.server.ServerLifecycleHooks.getCurrentServer();
-
-        if (server == null) {
-            return;
-        }
-
-        ServerPlayer requesterPlayer = server.getPlayerList().getPlayer(requester);
-
-        if (requesterPlayer != null) {
-            requesterPlayer.sendSystemMessage(Component.literal("[TSA] " + message));
         }
     }
 
@@ -234,7 +208,7 @@ public final class PacketIntegrityManager {
     public record PendingCheck(
             String challenge,
             long createdAt,
-            String playerName,
+            PlayerSnapshot player,
             UUID requester
     ) {
     }

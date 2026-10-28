@@ -36,6 +36,14 @@ public final class TsaAnticheatConfig {
                     "Default: tsa_anticheat.alerts."
             ).define("broadcast_permission", "tsa_anticheat.alerts");
 
+    public static final ModConfigSpec.ConfigValue<String> BYPASS_PERMISSION =
+            BUILDER.comment(
+                    "LuckPerms permission exempting players from TSA kicks and temporary bans.",
+                    "Also suppresses broadcast of successful automatic login packet checks.",
+                    "Manual /tsa detection checks still show their results.",
+                    "Default: tsa.bypass. OP status alone does not grant this permission."
+            ).define("bypass_permission", "tsa.bypass");
+
     public static final ModConfigSpec.ConfigValue<List<? extends String>> FILENAME_DETECTION_KEYWORDS =
             BUILDER.comment(
                     "Sanitized filename keywords that trigger a filename-based detection.",

@@ -33,6 +33,22 @@ public final class TsaPermissions {
         );
     }
 
+    public static boolean hasBypassPermission(ServerPlayer player) {
+        return hasLuckPermsPermission(player, TsaAnticheatConfig.BYPASS_PERMISSION.get());
+    }
+
+    /** Check stored LuckPerms permissions before a tempbanned player enters the world. */
+    public static boolean hasBypassPermission(java.util.UUID uuid) {
+        try {
+            var luckPerms = net.luckperms.api.LuckPermsProvider.get();
+            var user = luckPerms.getUserManager().loadUser(uuid).join();
+            return user != null && user.getCachedData().getPermissionData()
+                    .checkPermission(TsaAnticheatConfig.BYPASS_PERMISSION.get()).asBoolean();
+        } catch (IllegalStateException exception) {
+            return false;
+        }
+    }
+
     private static boolean hasLuckPermsPermission(
             ServerPlayer player,
             String permission

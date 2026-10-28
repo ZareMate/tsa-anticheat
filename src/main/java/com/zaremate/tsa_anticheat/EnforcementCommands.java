@@ -6,7 +6,6 @@ import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
 import net.minecraft.network.chat.Component;
-import java.util.UUID;
 
 final class EnforcementCommands {
     private EnforcementCommands() {}
@@ -61,12 +60,6 @@ final class EnforcementCommands {
                     })));
         }
         root.then(hash);
-        root.then(Commands.literal("unban").then(Commands.argument("uuid", StringArgumentType.word())
-                .executes(ctx -> {
-                    String id = StringArgumentType.getString(ctx, "uuid");
-                    return run(ctx.getSource(), () -> HashEnforcement.store().unban(UUID.fromString(id))
-                            ? "Removed TSA tempban for " + id + "." : "No TSA tempban stored for " + id + ".");
-                })));
         return root;
     }
 

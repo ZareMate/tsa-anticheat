@@ -62,11 +62,6 @@ public final class EventHandlers {
     }
 
     @SubscribeEvent
-    public static void onPlayerNegotiation(net.neoforged.neoforge.event.entity.player.PlayerNegotiationEvent event) {
-        HashEnforcement.negotiate(event);
-    }
-
-    @SubscribeEvent
     public static void onPlayerLogin(PlayerEvent.PlayerLoggedInEvent event) {
         if (event.getEntity() instanceof ServerPlayer player) {
             PLAYER_NAMES.put(player.getUUID(), player.getGameProfile().getName());

@@ -123,7 +123,7 @@ Set `webhook_enabled = true` and provide `webhook_url` to enable Discord notific
 The `command_permission` controls access to all `/tsa` commands. Players with permission level 3 always have access. By default, grant the LuckPerms node `tsa_anticheat.command`.
 ## Staff bypass
 
-Grant `tsa.bypass` through LuckPerms (for example, `/lp group admin permission set tsa.bypass true`). This exempts a player from automatic TSA kicks and tempbans, including existing TSA tempban admission checks. Automatic join-scan enforcement notifications and automatic packet-check broadcasts are suppressed for bypassed staff. The scans can still run and detections can still be recorded. Explicit `/tsa detect <player>` and `/tsa packetcheck <player>` continue reporting their results. OP level alone does not grant `tsa.bypass`.
+Grant `tsa.bypass` through LuckPerms (for example, `/lp group admin permission set tsa.bypass true`). This exempts a player from new TSA kicks and tempbans. It does not override an existing ban already recorded by Punish. Automatic join-scan enforcement notifications and automatic packet-check broadcasts are suppressed for bypassed staff. The scans can still run and detections can still be recorded. Explicit `/tsa detect <player>` and `/tsa packetcheck <player>` continue reporting their results. OP level alone does not grant `tsa.bypass`.
 
 ## Current detection command
 
@@ -399,26 +399,24 @@ Commands use the existing `/tsa` permission (`tsa_anticheat.command`, or OP leve
 /tsa enforcement tempban true                # enables tempban, disables kick
 /tsa enforcement tempban false
 /tsa enforcement duration 30m                # seconds, s, m, h, or d; maximum 365d
-/tsa enforcement unban <player-uuid>
 ```
 
 The mode and duration persist in the common config as `enforcement_mode` and
-`tempban_seconds` (default 3600). Commands finish asynchronously. Changing modes,
-durations, or the hash list does not clear existing tempbans or extend their expiry.
-Kick/tempban disconnect messages name the offending files, never their hashes.
-Multiple matching files produce one action per report.
+`tempban_seconds` (default 3600). Hash enforcement requires the separate
+[Punish](https://github.com/ZareMate/punish) mod on the server. TSA calls its
+public API on the server thread to create a silent UUID-based KICK or timed BAN
+with issuer `TSA Anticheat` and a reason naming the prohibited files.
+Punish handles persistence, login blocking, history, notifications, and unbanning;
+use `/unban <player>` to lift a Punish ban. Repeated scans do not renew an
+already-active Punish ban. Manual `/tsa detect` still checks hashes, and
+`tsa.bypass` prevents automatic enforcement.
 
-TSA tempbans are UUID-based and stored separately in
-`config/tsa_anticheat/tempbans.properties`; use `/tsa enforcement unban`, not vanilla
-`/pardon`, to remove them early. NeoForge login negotiation waits asynchronously for
-the ban check before allowing entry, including when no client detection report is
-sent. Expired bans stop applying automatically. If the ban store cannot be checked,
-login is refused with a retry message rather than admitting a potentially banned
-player. Storage and policy work remain on the worker; in-game disconnections run
-on the server thread. Initial hash detection still relies on the client's report.
+TSA no longer reads or enforces old `config/tsa_anticheat/tempbans.properties`
+records. Existing bans in that legacy file are **not automatically migrated** to
+Punish. Remove/archive that file only after reviewing outstanding bans.
+When Punish is missing or the API call fails, TSA reports a failure instead of
+silently falling back to the former internal tempban system.
 
 With webhooks enabled, join scans and manual scans identify their context and
 include **Action taken**: none (and why), kicked, tempban expiry, or a failure.
-Clean reported scans also send an explicit no-action result. Rejoining during an
-active tempban reports the refused login. Webhooks report the result of the
-actual disconnect attempt, and large detection lists are truncated to fit Discord.
+Clean reported scans also send an explicit no-action result. Punish handles login refusal for active bans; TSA webhooks report whether Punish accepted the enforcement request. Large detection lists are truncated to fit Discord.

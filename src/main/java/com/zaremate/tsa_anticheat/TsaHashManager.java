@@ -193,7 +193,7 @@ public final class TsaHashManager {
                 continue;
             }
 
-            if (TsaFilenameDetection.isHashAllowed(hash)) {
+            if (DisabledJarBypass.ignore(type, name) || TsaFilenameDetection.isHashAllowed(hash)) {
                 continue;
             }
 
@@ -234,7 +234,7 @@ public final class TsaHashManager {
         if (detections.isEmpty()) {
             String clean = playerName + " is clean. No blacklisted mods or resource packs detected.";
             target.publish(requester, clean, clean);
-            HashEnforcement.finish(target, response.results(), detections, "MANUAL DETECTION SCAN");
+            HashEnforcement.finish(target, DisabledJarBypass.filterReport(response.results()), detections, "MANUAL DETECTION SCAN");
             return;
         }
 

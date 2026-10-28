@@ -29,7 +29,7 @@ final class HashEnforcement {
             return;
         }
         try {
-            List<String> files = EnforcementPolicy.matchingFiles(report, store().hashes(), store().allowedHashes());
+            List<String> files = EnforcementPolicy.matchingFiles(DisabledJarBypass.filterReport(report), store().hashes(), store().allowedHashes());
             String mode = EnforcementPolicy.action(TsaAnticheatConfig.ENFORCEMENT_MODE.get(), files);
             if (mode.equals("off")) {
                 notify(player, detections, context, files.isEmpty()

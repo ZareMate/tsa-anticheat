@@ -85,6 +85,19 @@ The setting is persisted in `config/tsa_anticheat-common.toml` as
 `bypass_disabled_jars = true`, and uses the existing
 `tsa_anticheat.command` permission (or OP level 3).
 
+## Automatic login-check delay
+
+The automatic packet-integrity check starts **5 seconds** (100 server ticks) after a player joins by default. Change it with:
+
+```text
+/tsa logindelay           # show current delay
+/tsa logindelay 5         # start 5 seconds after joining
+/tsa logindelay 0         # start on the next server tick
+/tsa logindelay 10        # start 10 seconds after joining
+```
+
+Allowed values are 0–300 seconds. The setting is saved in the common config as `login_check_delay_seconds = 5`. It only affects future joins; already scheduled checks retain their original delay. Manual `/tsa packetcheck` runs immediately. The existing packet response timeout starts when the check is sent and is independent of this delay.
+
 ## Packet integrity check
 
 Operators can manually challenge a connected client with:
@@ -132,6 +145,7 @@ webhook_url = ""
 command_permission = "tsa_anticheat.command"
 broadcast_permission = "tsa_anticheat.alerts"
 bypass_permission = "tsa.bypass"
+login_check_delay_seconds = 5
 packet_check_timeout_seconds = 5
 ```
 

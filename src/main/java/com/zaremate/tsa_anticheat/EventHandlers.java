@@ -64,9 +64,7 @@ public final class EventHandlers {
     public static void onPlayerLogin(PlayerEvent.PlayerLoggedInEvent event) {
         if (event.getEntity() instanceof ServerPlayer player) {
             PLAYER_NAMES.put(player.getUUID(), player.getGameProfile().getName());
-            if (TsaAnticheatConfig.PACKET_CHECK_ON_LOGIN.get()) {
-                LOGIN_CHECKS.put(player.getUUID(), TsaAnticheatConfig.LOGIN_CHECK_DELAY_SECONDS.get() * 20);
-            }
+            LOGIN_CHECKS.put(player.getUUID(), TsaAnticheatConfig.LOGIN_CHECK_DELAY_SECONDS.get() * 20);
         }
     }
 
@@ -102,8 +100,11 @@ public final class EventHandlers {
 
             iterator.remove();
             ServerPlayer player = server.getPlayerList().getPlayer(entry.getKey());
-            if (player != null && TsaAnticheatConfig.PACKET_CHECK_ON_LOGIN.get()) {
-                PacketIntegrityManager.start(player, null);
+            if (player != null) {
+                TsaHashManager.startJoinScan(player);
+                if (TsaAnticheatConfig.PACKET_CHECK_ON_LOGIN.get()) {
+                    PacketIntegrityManager.start(player, null);
+                }
             }
         }
     }

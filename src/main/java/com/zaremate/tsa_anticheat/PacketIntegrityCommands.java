@@ -2,6 +2,7 @@ package com.zaremate.tsa_anticheat;
 
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.arguments.StringArgumentType;
+import com.mojang.brigadier.arguments.IntegerArgumentType;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
 import net.minecraft.commands.arguments.EntityArgument;
@@ -24,6 +25,11 @@ public final class PacketIntegrityCommands {
                 Commands.literal("tsa")
                         .requires(TsaPermissions::canUseCommands)
                         .then(EnforcementCommands.node())
+                        .then(Commands.literal("logindelay")
+                                .executes(context -> loginDelay(context.getSource(), null))
+                                .then(Commands.argument("seconds", IntegerArgumentType.integer(0, 300))
+                                        .executes(context -> loginDelay(context.getSource(),
+                                                IntegerArgumentType.getInteger(context, "seconds")))))
                         .then(Commands.literal("disabledjars")
                                 .executes(context -> disabledJars(context.getSource(), null))
                                 .then(Commands.literal("true")
@@ -151,6 +157,19 @@ public final class PacketIntegrityCommands {
                                 )
                         )
         );
+    }
+
+    private static int loginDelay(CommandSourceStack source, Integer seconds) {
+        if (seconds != null) {
+            TsaAnticheatConfig.LOGIN_CHECK_DELAY_SECONDS.set(seconds);
+            TsaAnticheatConfig.LOGIN_CHECK_DELAY_SECONDS.save();
+        }
+        int current = TsaAnticheatConfig.LOGIN_CHECK_DELAY_SECONDS.get();
+        source.sendSuccess(() -> Component.literal(
+                "Automatic login packet check delay: " + current + " second"
+                        + (current == 1 ? "" : "s") + "."
+        ), false);
+        return 1;
     }
 
     private static int disabledJars(CommandSourceStack source, Boolean value) {

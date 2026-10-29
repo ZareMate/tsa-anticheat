@@ -10,7 +10,6 @@ import java.util.Map;
 import java.util.UUID;
 
 public final class EventHandlers {
-    private static final int LOGIN_CHECK_DELAY_TICKS = 20;
     private static final Map<UUID, Integer> LOGIN_CHECKS = new HashMap<>();
 
     private static final Map<UUID, String> PLAYER_NAMES = new java.util.concurrent.ConcurrentHashMap<>();
@@ -66,7 +65,7 @@ public final class EventHandlers {
         if (event.getEntity() instanceof ServerPlayer player) {
             PLAYER_NAMES.put(player.getUUID(), player.getGameProfile().getName());
             if (TsaAnticheatConfig.PACKET_CHECK_ON_LOGIN.get()) {
-                LOGIN_CHECKS.put(player.getUUID(), LOGIN_CHECK_DELAY_TICKS);
+                LOGIN_CHECKS.put(player.getUUID(), TsaAnticheatConfig.LOGIN_CHECK_DELAY_SECONDS.get() * 20);
             }
         }
     }

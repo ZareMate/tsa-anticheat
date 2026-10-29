@@ -25,6 +25,11 @@ public final class PacketIntegrityCommands {
                 Commands.literal("tsa")
                         .requires(TsaPermissions::canUseCommands)
                         .then(EnforcementCommands.node())
+                        .then(Commands.literal("help")
+                                .executes(context -> TsaHelp.show(context.getSource(), 1))
+                                .then(Commands.argument("page", IntegerArgumentType.integer(1, 3))
+                                        .executes(context -> TsaHelp.show(context.getSource(),
+                                                IntegerArgumentType.getInteger(context, "page")))))
                         .then(Commands.literal("logindelay")
                                 .executes(context -> loginDelay(context.getSource(), null))
                                 .then(Commands.argument("seconds", IntegerArgumentType.integer(0, 300))

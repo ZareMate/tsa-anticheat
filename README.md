@@ -94,7 +94,7 @@ The setting is persisted in `config/tsa_anticheat-common.toml` as
 
 ## Automatic login-check delay
 
-Both the automatic mod/resource-pack scan and packet-integrity check start **5 seconds** (100 server ticks) after a player joins by default. The server requests the file scan after that delay instead of accepting an immediate client-login scan. **Both client and server must be updated** for the delayed file scan to work. Change it with:
+The automatic packet-integrity check starts **5 seconds** (100 server ticks) after a player joins by default. The mod/resource-pack file scan still starts immediately from the client at login. Change the packet check delay with:
 
 ```text
 /tsa logindelay           # show current delay

@@ -68,7 +68,7 @@ public final class PacketIntegrityClient {
         List<String> results = new ArrayList<>();
         int failed;
 
-        if ("DETECTION".equals(payload.kind()) || "JOIN_SCAN".equals(payload.kind())) {
+        if ("DETECTION".equals(payload.kind())) {
             failed = handleDetectionRequest(gameDirectory, results);
         } else {
             failed = handleSingleHashRequest(gameDirectory, payload, results);

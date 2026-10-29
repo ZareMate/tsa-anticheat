@@ -81,6 +81,12 @@ public final class TsaAnticheatConfig {
                     "Default: true."
             ).define("packet_check_on_login", true);
 
+    public static final ModConfigSpec.IntValue LOGIN_CHECK_DELAY_SECONDS =
+            BUILDER.comment(
+                    "Delay in seconds after joining before starting the automatic packet integrity check.",
+                    "Default: 5 seconds. Set using /tsa logindelay <seconds>."
+            ).defineInRange("login_check_delay_seconds", 5, 0, 300);
+
     public static final ModConfigSpec.IntValue PACKET_CHECK_TIMEOUT_SECONDS =
             BUILDER.comment(
                     "Maximum time to wait for a packet integrity response.",

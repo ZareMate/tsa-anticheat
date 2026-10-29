@@ -45,7 +45,7 @@ public record XrayReportPayload(String data) implements CustomPacketPayload {
         });
     }
 
-    static void verifyAndWriteReports(PlayerSnapshot player, String data) {
+    private static void verifyAndWriteReports(PlayerSnapshot player, String data) {
         Set<String> blacklistedHashes = new java.util.HashSet<>(TsaFilenameDetection.loadBlacklistedHashes());
 
         Set<String> enforcementHashes = HashEnforcement.hashes();

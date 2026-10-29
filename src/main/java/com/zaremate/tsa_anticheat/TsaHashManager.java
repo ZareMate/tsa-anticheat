@@ -43,16 +43,6 @@ public final class TsaHashManager {
         );
     }
 
-    /** Initiated after the configured login delay, not by the client login event. */
-    public static boolean startJoinScan(ServerPlayer player) {
-        if (PENDING.putIfAbsent(player.getUUID(),
-                new PendingRequest("JOIN_SCAN", "CURRENT", null)) != null) {
-            return false;
-        }
-        PacketDistributor.sendToPlayer(player, new HashRequestPayload("JOIN_SCAN", "CURRENT"));
-        return true;
-    }
-
     public static boolean startDetection(ServerPlayer player, UUID requester) {
         if (PENDING.putIfAbsent(
                 player.getUUID(),
@@ -90,11 +80,6 @@ public final class TsaHashManager {
             player.sendSystemMessage(
                     Component.literal("[TSA] Ignored invalid hash response.")
             );
-            return;
-        }
-
-        if ("JOIN_SCAN".equals(pending.type())) {
-            XrayReportPayload.verifyAndWriteReports(player, response.results());
             return;
         }
 

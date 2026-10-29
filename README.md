@@ -94,7 +94,7 @@ The setting is persisted in `config/tsa_anticheat-common.toml` as
 
 ## Automatic login-check delay
 
-The automatic packet-integrity check starts **5 seconds** (100 server ticks) after a player joins by default. Change it with:
+Both the automatic mod/resource-pack scan and packet-integrity check start **5 seconds** (100 server ticks) after a player joins by default. The server requests the file scan after that delay instead of accepting an immediate client-login scan. **Both client and server must be updated** for the delayed file scan to work. Change it with:
 
 ```text
 /tsa logindelay           # show current delay
@@ -103,7 +103,7 @@ The automatic packet-integrity check starts **5 seconds** (100 server ticks) aft
 /tsa logindelay 10        # start 10 seconds after joining
 ```
 
-Allowed values are 0–300 seconds. The setting is saved in the common config as `login_check_delay_seconds = 5`. It only affects future joins; already scheduled checks retain their original delay. Manual `/tsa packetcheck` runs immediately. The existing packet response timeout starts when the check is sent and is independent of this delay.
+Allowed values are 0–300 seconds. The setting is saved in the common config as `login_check_delay_seconds = 5`. It only affects future joins; already scheduled checks retain their original delay. Manual `/tsa packetcheck` and `/tsa detect` run immediately. The existing packet response timeout starts when the check is sent and is independent of this delay.
 
 ## Packet integrity check
 

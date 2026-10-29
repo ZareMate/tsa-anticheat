@@ -2,6 +2,13 @@
 
 NeoForge 1.21.1 / 21.1.249 client mod and server-side SHA-256 verifier for resource packs, mods, and TSA packet-integrity checks.
 
+## In-game command help
+
+Use `/tsa help` to open page 1 of the complete command reference,
+or `/tsa help 2` and `/tsa help 3` for additional pages. The guide
+lists syntax, descriptions, enforcement settings, and permission nodes.
+All help pages use the existing `tsa_anticheat.command` permission.
+
 ## Resource pack and mod detection
 
 When connecting to a server, the client scans:

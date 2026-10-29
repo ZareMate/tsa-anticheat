@@ -17,7 +17,7 @@ final class TsaHelp {
                 .withStyle(ChatFormatting.AQUA, ChatFormatting.BOLD), false);
         for (String entry : lines(page)) {
             String[] parts = entry.split("\\|", 2);
-            Component message = Component.literal(parts[0]).withStyle(ChatFormatting.YELLOW);
+            var message = Component.literal(parts[0]).withStyle(ChatFormatting.YELLOW);
             if (parts.length > 1) {
                 message = message.append(Component.literal(" - " + parts[1])
                         .withStyle(ChatFormatting.GRAY));

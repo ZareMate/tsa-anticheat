@@ -61,6 +61,18 @@ public final class TsaAnticheatAPI {
         return com.zaremate.tsa_anticheat.TsaHashManager.startUnallowlisted(player, null);
     }
 
+    /** Cached inventories from all players scanned since server start. */
+    public static java.util.Map<UUID, com.zaremate.tsa_anticheat.TsaInventory.Snapshot> getInventories() {
+        return com.zaremate.tsa_anticheat.TsaInventory.all();
+    }
+
+    /** Cached unallowlisted entries grouped by player UUID. */
+    public static java.util.Map<UUID, List<com.zaremate.tsa_anticheat.TsaInventory.Entry>> getAllUnallowlisted() {
+        java.util.Map<UUID, List<com.zaremate.tsa_anticheat.TsaInventory.Entry>> result = new java.util.LinkedHashMap<>();
+        getInventories().forEach((uuid, snapshot) -> result.put(uuid, snapshot.unallowlisted()));
+        return java.util.Map.copyOf(result);
+    }
+
     /** Non-allowlisted mods and resource packs from the latest client scan. */
     public static List<com.zaremate.tsa_anticheat.TsaInventory.Entry> getUnallowlisted(UUID uuid) {
         return getInventory(uuid).map(com.zaremate.tsa_anticheat.TsaInventory.Snapshot::unallowlisted)

@@ -9,6 +9,14 @@ or `/tsa help 2` and `/tsa help 3` for additional pages. The guide
 lists syntax, descriptions, enforcement settings, and permission nodes.
 All help pages use the existing `tsa_anticheat.command` permission.
 
+## Hash formats
+
+TSA now hashes **ZIP/JAR files as raw bytes**, without inspecting archive entries. A different compression level, timestamp, or other ZIP metadata may change the hash.
+
+For folders TSA builds a deterministic in-memory ZIP, then hashes those bytes. It matches the standalone Windows `tsa_hash_raw.py` script: relative paths sorted, forward slash separators, ZIP_STORED, fixed 1980-01-01 timestamps, Unix 0644 file attributes, and ZIP64 local size fields. Folder ZIPs are **not saved** by the mod.
+
+**Breaking hash migration:** hashes previously collected for ZIP/JAR/folder packs may differ. Regenerate allowlist, blacklist and enforcement hashes and update clients before relying on the new scheme. Mixed client versions may report incompatible hashes.
+
 ## Resource pack and mod detection
 
 When connecting to a server, the client scans:
@@ -35,7 +43,7 @@ Renaming a pack or mod does not bypass a hash blacklist entry. A legitimate file
 
 ### Resource packs
 
-ZIP resource packs are hashed from their logical files in sorted order. ZIP timestamps and compression metadata are ignored.
+ZIP and JAR files are hashed from their raw file bytes. ZIP timestamps and compression metadata are ignored.
 
 Folder resource packs use the same canonical relative-path + file-content hashing scheme.
 

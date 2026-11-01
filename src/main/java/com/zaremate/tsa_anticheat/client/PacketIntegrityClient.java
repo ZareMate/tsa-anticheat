@@ -118,7 +118,7 @@ public final class PacketIntegrityClient {
                             results.add(
                                     entry.getFileName().toString() +
                                     "\t" +
-                                    (hash.empty() ? "EMPTY" : hash.hash())
+                                    hash.hash()
                             );
                         } catch (Exception exception) {
                             failed++;
@@ -137,7 +137,7 @@ public final class PacketIntegrityClient {
                         results.add(
                                 entry.getFileName().toString() +
                                 "\t" +
-                                (hash.empty() ? "EMPTY" : hash.hash())
+                                hash.hash()
                         );
                     } catch (Exception exception) {
                         failed++;
@@ -201,7 +201,7 @@ public final class PacketIntegrityClient {
                     results.add(
                             type + "\t" +
                             entry.getFileName() + "\t" +
-                            (hash.empty() ? "EMPTY" : hash.hash())
+                            hash.hash()
                     );
                 } catch (Exception exception) {
                     failed++;

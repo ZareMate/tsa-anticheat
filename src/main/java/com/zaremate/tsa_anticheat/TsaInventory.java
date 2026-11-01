@@ -35,6 +35,10 @@ public final class TsaInventory {
 
     public static void clear() { SNAPSHOTS.clear(); }
 
+    public static boolean isEmptyHash(String hash) {
+        return hash != null && EMPTY_SHA256.equalsIgnoreCase(hash.trim());
+    }
+
     public static Snapshot capture(UUID uuid, String raw, int failures) {
         List<Entry> entries = new ArrayList<>();
         for (String line : raw.split("\\R")) {
@@ -46,7 +50,7 @@ public final class TsaInventory {
             String name = line.substring(first + 1, last);
             String hash = line.substring(last + 1).trim().toLowerCase(Locale.ROOT);
             if (!hash.matches("[0-9a-f]{64}")) continue;
-            boolean empty = EMPTY_SHA256.equals(hash);
+            boolean empty = isEmptyHash(hash);
             boolean allowed = TsaFilenameDetection.isHashAllowed(hash)
                     || TsaFilenameDetection.isAllowlisted(name);
             entries.add(new Entry(type, name, hash, empty, allowed));

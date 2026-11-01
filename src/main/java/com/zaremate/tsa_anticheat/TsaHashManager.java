@@ -47,7 +47,7 @@ public final class TsaHashManager {
         return startInventoryScan(player, null, "JOIN_SCAN");
     }
 
-    public static boolean startUnallowlisted(ServerPlayer player, UUID requester) {
+    public static boolean startUnlisted(ServerPlayer player, UUID requester) {
         return startInventoryScan(player, requester, "UNALLOWED");
     }
 
@@ -104,8 +104,8 @@ public final class TsaHashManager {
         if ("DETECTION".equals(pending.type()) || "UNALLOWED".equals(pending.type())) {
             TsaInventory.Snapshot inventory = TsaInventory.capture(player.uuid(), response.results(), response.failed());
             if ("UNALLOWED".equals(pending.type())) {
-                reportEmptyFiles(player, inventory, "UNALLOWLISTED INVENTORY SCAN");
-                String message = TsaInventory.formatUnallowlisted(inventory, player.name());
+                reportEmptyFiles(player, inventory, "UNLISTED INVENTORY SCAN");
+                String message = TsaInventory.formatUnlisted(inventory, player.name());
                 if (pending.requester() == null) TsaAnticheat.LOGGER.info(message);
                 else player.publish(pending.requester(), message, "", false);
                 return;

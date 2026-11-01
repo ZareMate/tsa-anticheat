@@ -271,9 +271,8 @@ public final class TsaHashManager {
         java.util.List<String> descriptions = inventory.emptyFiles().stream()
                 .map(entry -> entry.type() + " " + entry.name() + " (EMPTY)")
                 .toList();
-        String message = "[TSA] " + player.name() + " reported empty files:\
-- " + String.join("\
-- ", descriptions);
+        String message = "[TSA] " + player.name() + " reported empty files:" + System.lineSeparator()
+                + "- " + String.join(System.lineSeparator() + "- ", descriptions);
         player.publish(null, message, message);
         DiscordWebhook.sendDetection(player.name(), player.uuid().toString(), descriptions,
                 context + " — EMPTY FILES", "None — informational only.");

@@ -91,7 +91,12 @@ public final class TsaHashManager {
             return;
         }
 
-        if ("DETECTION".equals(pending.type()) || "UNALLOWED".equals(pending.type())) {\n            TsaInventory.Snapshot inventory = TsaInventory.capture(player.uuid(), response.results(), response.failed());\n            if ("UNALLOWED".equals(pending.type())) {\n                player.publish(pending.requester(), TsaInventory.formatUnallowlisted(inventory, player.name()), "", false);\n                return;\n            }
+        if ("DETECTION".equals(pending.type()) || "UNALLOWED".equals(pending.type())) {
+            TsaInventory.Snapshot inventory = TsaInventory.capture(player.uuid(), response.results(), response.failed());
+            if ("UNALLOWED".equals(pending.type())) {
+                player.publish(pending.requester(), TsaInventory.formatUnallowlisted(inventory, player.name()), "", false);
+                return;
+            }
             handleDetectionResponse(player, pending.requester(), response);
             return;
         }
@@ -112,7 +117,11 @@ public final class TsaHashManager {
             String name = line.substring(0, separator);
             String hash = line.substring(separator + 1).trim();
 
-            if (hash.equalsIgnoreCase("EMPTY")) {\n                player.sendSystemMessage(Component.literal("[TSA] Empty " + pending.type() + ": " + name));\n                continue;\n            }\n            if (!hash.matches("[0-9a-f]{64}")) {
+            if (hash.equalsIgnoreCase("EMPTY")) {
+                player.sendSystemMessage(Component.literal("[TSA] Empty " + pending.type() + ": " + name));
+                continue;
+            }
+            if (!hash.matches("[0-9a-f]{64}")) {
                 continue;
             }
 
@@ -175,7 +184,9 @@ public final class TsaHashManager {
             UUID requester,
             HashResponsePayload response
     ) {
-        var inventory = TsaInventory.get(target.uuid());\n        reportEmptyFiles(target, inventory, "MANUAL DETECTION SCAN");\n        var enforcementHashes = HashEnforcement.hashes();
+        var inventory = TsaInventory.get(target.uuid());
+        reportEmptyFiles(target, inventory, "MANUAL DETECTION SCAN");
+        var enforcementHashes = HashEnforcement.hashes();
         List<String> detections = new ArrayList<>();
 
         for (String line : response.results().split("\\R")) {

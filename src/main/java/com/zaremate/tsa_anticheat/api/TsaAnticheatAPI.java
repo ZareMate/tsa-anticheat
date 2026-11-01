@@ -48,6 +48,18 @@ public final class TsaAnticheatAPI {
     public static synchronized void clearCache() {
         snapshot = List.of();
         refresh = null;
+        com.zaremate.tsa_anticheat.TsaInventory.clear();
+    }
+
+    /** Latest client-reported inventory from a successful scan. */
+    public static java.util.Optional<com.zaremate.tsa_anticheat.TsaInventory.Snapshot> getInventory(UUID uuid) {
+        return java.util.Optional.ofNullable(com.zaremate.tsa_anticheat.TsaInventory.get(uuid));
+    }
+
+    /** Non-allowlisted mods and resource packs from the latest client scan. */
+    public static List<com.zaremate.tsa_anticheat.TsaInventory.Entry> getUnallowlisted(UUID uuid) {
+        return getInventory(uuid).map(com.zaremate.tsa_anticheat.TsaInventory.Snapshot::unallowlisted)
+                .orElseGet(List::of);
     }
 
     public record PlayerRecord(

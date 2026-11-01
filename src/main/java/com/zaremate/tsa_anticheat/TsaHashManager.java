@@ -43,10 +43,22 @@ public final class TsaHashManager {
         );
     }
 
+    public static boolean startJoinScan(ServerPlayer player) {
+        return startInventoryScan(player, null, "JOIN_SCAN");
+    }
+
+    public static boolean startUnlisted(ServerPlayer player, UUID requester) {
+        return startInventoryScan(player, requester, "UNLISTED");
+    }
+
     public static boolean startDetection(ServerPlayer player, UUID requester) {
+        return startInventoryScan(player, requester, "DETECTION");
+    }
+
+    private static boolean startInventoryScan(ServerPlayer player, UUID requester, String kind) {
         if (PENDING.putIfAbsent(
                 player.getUUID(),
-                new PendingRequest("DETECTION", "CURRENT", requester)
+                new PendingRequest(kind, "CURRENT", requester)
         ) != null) {
             return false;
         }
@@ -75,7 +87,9 @@ public final class TsaHashManager {
             return;
         }
 
-        if (!pending.type().equals(response.kind())
+        String expectedKind = ("JOIN_SCAN".equals(pending.type()) || "UNLISTED".equals(pending.type()))
+                ? "DETECTION" : pending.type();
+        if (!expectedKind.equals(response.kind())
                 || !pending.name().equals(response.requestedName())) {
             player.sendSystemMessage(
                     Component.literal("[TSA] Ignored invalid hash response.")
@@ -83,12 +97,25 @@ public final class TsaHashManager {
             return;
         }
 
-        if ("DETECTION".equals(pending.type())) {
+        if ("JOIN_SCAN".equals(pending.type())) {
+            XrayReportPayload.verifyAndWriteReports(player, response.results(), response.failed());
+            return;
+        }
+        if ("DETECTION".equals(pending.type()) || "UNLISTED".equals(pending.type())) {
+            TsaInventory.Snapshot inventory = TsaInventory.capture(player.uuid(), response.results(), response.failed());
+            if ("UNLISTED".equals(pending.type())) {
+                reportEmptyFiles(player, inventory, "UNLISTED INVENTORY SCAN");
+                String message = TsaInventory.formatUnlisted(inventory, player.name());
+                if (pending.requester() == null) TsaAnticheat.LOGGER.info(message);
+                else player.publish(pending.requester(), message, "", false);
+                return;
+            }
             handleDetectionResponse(player, pending.requester(), response);
             return;
         }
 
         int saved = 0;
+        java.util.List<String> emptyFiles = new java.util.ArrayList<>();
 
         for (String line : response.results().split("\\R")) {
             if (line.isBlank()) {
@@ -108,6 +135,12 @@ public final class TsaHashManager {
                 continue;
             }
 
+            if (TsaInventory.isEmptyHash(hash)) {
+                emptyFiles.add(pending.type() + " " + name + " [" + hash + "] (EMPTY)");
+                player.sendSystemMessage(Component.literal("[TSA] Empty " + pending.type()
+                        + ": " + name + " [" + hash + "]"));
+            }
+
             try {
                 saveGeneratedHash(pending.type(), name, hash);
                 saved++;
@@ -121,6 +154,8 @@ public final class TsaHashManager {
             }
         }
 
+        reportEmptyFiles(player, emptyFiles, "MANUAL HASH REQUEST");
+
         if ("*".equals(pending.name())) {
             int total = saved + response.failed();
 
@@ -129,6 +164,7 @@ public final class TsaHashManager {
                             "Hashed " + saved + " " +
                             pending.type().toLowerCase() +
                             (saved == 1 ? "" : "s") +
+                            (emptyFiles.isEmpty() ? "" : " (" + emptyFiles.size() + " empty)") +
                             (response.failed() > 0
                                     ? " (" + response.failed() + " failed)"
                                     : "") +
@@ -167,6 +203,8 @@ public final class TsaHashManager {
             UUID requester,
             HashResponsePayload response
     ) {
+        var inventory = TsaInventory.get(target.uuid());
+        reportEmptyFiles(target, inventory, "MANUAL DETECTION SCAN");
         var enforcementHashes = HashEnforcement.hashes();
         List<String> detections = new ArrayList<>();
 
@@ -256,6 +294,22 @@ public final class TsaHashManager {
 
         target.publish(requester, "[TSA Anticheat] " + result, "[TSA Anticheat] " + result);
         HashEnforcement.finish(target, response.results(), detections, "MANUAL DETECTION SCAN");
+    }
+
+    static void reportEmptyFiles(PlayerSnapshot player, TsaInventory.Snapshot inventory, String context) {
+        if (inventory == null) return;
+        reportEmptyFiles(player, inventory.emptyFiles().stream()
+                .map(entry -> entry.type() + " " + entry.name() + " [" + entry.hash() + "] (EMPTY)")
+                .toList(), context);
+    }
+
+    static void reportEmptyFiles(PlayerSnapshot player, java.util.List<String> descriptions, String context) {
+        if (descriptions.isEmpty()) return;
+        String message = "[TSA] " + player.name() + " reported empty files:" + System.lineSeparator()
+                + "- " + String.join(System.lineSeparator() + "- ", descriptions);
+        player.publish(null, message, message);
+        DiscordWebhook.sendDetection(player.name(), player.uuid().toString(), descriptions,
+                context + " — EMPTY FILES", "None — informational only.");
     }
 
     private static boolean isBlacklisted(String hash) {

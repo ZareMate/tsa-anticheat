@@ -11,6 +11,7 @@ import java.util.UUID;
 
 public final class EventHandlers {
     private static final Map<UUID, Integer> LOGIN_CHECKS = new HashMap<>();
+    private static final Map<UUID, Integer> INVENTORY_CHECKS = new HashMap<>();
 
     private static final Map<UUID, String> PLAYER_NAMES = new java.util.concurrent.ConcurrentHashMap<>();
     private static int historyRefreshTicks;
@@ -53,6 +54,7 @@ public final class EventHandlers {
     public static void onServerStopping(net.neoforged.neoforge.event.server.ServerStoppingEvent event) {
         TsaWorker.stop();
         LOGIN_CHECKS.clear();
+        INVENTORY_CHECKS.clear();
         PacketIntegrityManager.clear();
         TsaHashManager.clear();
         PLAYER_NAMES.clear();
@@ -64,6 +66,7 @@ public final class EventHandlers {
     public static void onPlayerLogin(PlayerEvent.PlayerLoggedInEvent event) {
         if (event.getEntity() instanceof ServerPlayer player) {
             PLAYER_NAMES.put(player.getUUID(), player.getGameProfile().getName());
+            INVENTORY_CHECKS.put(player.getUUID(), TsaAnticheatConfig.LOGIN_CHECK_DELAY_SECONDS.get() * 20);
             if (TsaAnticheatConfig.PACKET_CHECK_ON_LOGIN.get()) {
                 LOGIN_CHECKS.put(player.getUUID(), TsaAnticheatConfig.LOGIN_CHECK_DELAY_SECONDS.get() * 20);
             }
@@ -73,6 +76,7 @@ public final class EventHandlers {
     @SubscribeEvent
     public static void onPlayerLogout(PlayerEvent.PlayerLoggedOutEvent event) {
         LOGIN_CHECKS.remove(event.getEntity().getUUID());
+        INVENTORY_CHECKS.remove(event.getEntity().getUUID());
         PLAYER_NAMES.remove(event.getEntity().getUUID());
         TsaHashManager.forget(event.getEntity().getUUID());
     }
@@ -85,6 +89,18 @@ public final class EventHandlers {
             refreshHistory();
         }
 
+        var inventoryIterator = INVENTORY_CHECKS.entrySet().iterator();
+        while (inventoryIterator.hasNext()) {
+            var entry = inventoryIterator.next();
+            int remaining = entry.getValue() - 1;
+            if (remaining > 0) {
+                entry.setValue(remaining);
+                continue;
+            }
+            inventoryIterator.remove();
+            ServerPlayer player = event.getServer().getPlayerList().getPlayer(entry.getKey());
+            if (player != null) TsaHashManager.startJoinScan(player);
+        }
         if (LOGIN_CHECKS.isEmpty()) {
             return;
         }

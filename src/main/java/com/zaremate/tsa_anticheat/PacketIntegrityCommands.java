@@ -73,6 +73,12 @@ public final class PacketIntegrityCommands {
                                                                 StringArgumentType.getString(ctx, "hash")))))
                                 )
                         )
+                        .then(Commands.literal("unlisted")
+                                .then(Commands.literal("all")
+                                        .executes(context -> startUnlistedAll(context.getSource())))
+                                .then(Commands.argument("player", EntityArgument.player())
+                                        .executes(context -> startUnlisted(context.getSource(),
+                                                EntityArgument.getPlayer(context, "player")))))
                         .then(Commands.literal("detect")
                                 .then(Commands.argument("player", EntityArgument.player())
                                         .executes(context -> startDetection(
@@ -384,6 +390,31 @@ public final class PacketIntegrityCommands {
                 true
         );
 
+        return 1;
+    }
+
+    private static int startUnlistedAll(CommandSourceStack source) {
+        UUID requester = source.getEntity() instanceof ServerPlayer player ? player.getUUID() : null;
+        int started = 0;
+        int busy = 0;
+        for (ServerPlayer player : source.getServer().getPlayerList().getPlayers()) {
+            if (TsaHashManager.startUnallowlisted(player, requester)) started++;
+            else busy++;
+        }
+        int scanned = started, skipped = busy;
+        source.sendSuccess(() -> Component.literal("Requested unlisted inventory from "
+                + scanned + " online players (" + skipped + " already scanning)."), false);
+        return started > 0 ? 1 : 0;
+    }
+
+    private static int startUnlisted(CommandSourceStack source, ServerPlayer target) {
+        UUID requester = source.getEntity() instanceof ServerPlayer player ? player.getUUID() : null;
+        if (!TsaHashManager.startUnallowlisted(target, requester)) {
+            source.sendFailure(Component.literal("A TSA inventory scan is already pending for " + target.getGameProfile().getName()));
+            return 0;
+        }
+        source.sendSuccess(() -> Component.literal("Requested unlisted mods/resource packs for "
+                + target.getGameProfile().getName() + ". Results will arrive after the scan."), false);
         return 1;
     }
 

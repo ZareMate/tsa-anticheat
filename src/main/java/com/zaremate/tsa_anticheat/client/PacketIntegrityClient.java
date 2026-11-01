@@ -68,7 +68,7 @@ public final class PacketIntegrityClient {
         List<String> results = new ArrayList<>();
         int failed;
 
-        if ("DETECTION".equals(payload.kind())) {
+        if ("DETECTION".equals(payload.kind()) || "UNALLOWED".equals(payload.kind()) || "JOIN_SCAN".equals(payload.kind())) {
             failed = handleDetectionRequest(gameDirectory, results);
         } else {
             failed = handleSingleHashRequest(gameDirectory, payload, results);
@@ -114,11 +114,11 @@ public final class PacketIntegrityClient {
                                 continue;
                             }
 
-                            String hash = ResourcePackHasher.hash(entry);
+                            var hash = ResourcePackHasher.hashWithInfo(entry);
                             results.add(
                                     entry.getFileName().toString() +
                                     "\t" +
-                                    hash
+                                    hash.hash()
                             );
                         } catch (Exception exception) {
                             failed++;
@@ -133,10 +133,11 @@ public final class PacketIntegrityClient {
                     failed++;
                 } else {
                     try {
+                        var hash = ResourcePackHasher.hashWithInfo(entry);
                         results.add(
                                 entry.getFileName().toString() +
                                 "\t" +
-                                ResourcePackHasher.hash(entry)
+                                hash.hash()
                         );
                     } catch (Exception exception) {
                         failed++;
@@ -195,12 +196,12 @@ public final class PacketIntegrityClient {
                         continue;
                     }
 
-                    String hash = ResourcePackHasher.hash(entry);
+                    var hash = ResourcePackHasher.hashWithInfo(entry);
 
                     results.add(
                             type + "\t" +
                             entry.getFileName() + "\t" +
-                            hash
+                            hash.hash()
                     );
                 } catch (Exception exception) {
                     failed++;

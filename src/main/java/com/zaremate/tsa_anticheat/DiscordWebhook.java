@@ -149,7 +149,7 @@ public final class DiscordWebhook {
         String json = "{"
                 + "\"username\":\"TSA Anticheat\","
                 + "\"embeds\":[{"
-                + "\"title\":\"TSA Anticheat detection\","
+                + "\"title\":\"" + escapeJson(context.contains("EMPTY FILES") ? "TSA Anticheat empty files" : "TSA Anticheat detection") + "\","
                 + "\"description\":\"" + escapeJson(description) + "\","
                 + "\"color\":" + colorFor("DETECTED")
                 + "}]"

@@ -20,28 +20,34 @@ public final class ResourcePackHasher {
     private ResourcePackHasher() {
     }
 
+    public record HashResult(String hash, boolean empty) {}
+
     public static String hash(Path resourcePack) throws IOException {
+        return hashWithInfo(resourcePack).hash();
+    }
+
+    public static HashResult hashWithInfo(Path resourcePack) throws IOException {
         if (Files.isDirectory(resourcePack)) {
-            return hashDirectory(resourcePack);
+            return hashDirectoryResult(resourcePack);
         }
 
         if (Files.isRegularFile(resourcePack)) {
-            return hashZipOrFile(resourcePack);
+            return hashZipOrFileResult(resourcePack);
         }
 
         throw new IOException("Unsupported resource pack: " + resourcePack);
     }
 
-    private static String hashZipOrFile(Path file) throws IOException {
+    private static HashResult hashZipOrFileResult(Path file) throws IOException {
         try (ZipFile zip = new ZipFile(file.toFile())) {
-            return hashZip(zip);
+            return hashZipResult(zip);
         } catch (java.util.zip.ZipException notZip) {
             // Keep support for any regular resource-pack file by hashing its bytes.
-            return hashRawFile(file);
+            return new HashResult(hashRawFile(file), Files.size(file) == 0);
         }
     }
 
-    private static String hashZip(ZipFile zip) throws IOException {
+    private static HashResult hashZipResult(ZipFile zip) throws IOException {
         MessageDigest digest = sha256();
 
         List<? extends ZipEntry> entries = zip.stream()
@@ -60,7 +66,7 @@ public final class ResourcePackHasher {
             digest.update((byte) 0);
         }
 
-        return HEX.formatHex(digest.digest());
+        return new HashResult(HEX.formatHex(digest.digest()), entries.isEmpty());
     }
 
     private static String hashRawFile(Path file) throws IOException {
@@ -73,7 +79,7 @@ public final class ResourcePackHasher {
         return HEX.formatHex(digest.digest());
     }
 
-    private static String hashDirectory(Path directory) throws IOException {
+    private static HashResult hashDirectoryResult(Path directory) throws IOException {
         MessageDigest digest = sha256();
         List<Path> files;
 
@@ -100,7 +106,7 @@ public final class ResourcePackHasher {
             digest.update((byte) 0);
         }
 
-        return HEX.formatHex(digest.digest());
+        return new HashResult(HEX.formatHex(digest.digest()), files.isEmpty());
     }
 
     private static void updateDigest(MessageDigest digest, InputStream input) throws IOException {

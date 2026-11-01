@@ -48,6 +48,53 @@ public final class TsaAnticheatAPI {
     public static synchronized void clearCache() {
         snapshot = List.of();
         refresh = null;
+        com.zaremate.tsa_anticheat.TsaInventory.clear();
+    }
+
+    /** Latest client-reported inventory from a successful scan. */
+    public static java.util.Optional<com.zaremate.tsa_anticheat.TsaInventory.Snapshot> getInventory(UUID uuid) {
+        return java.util.Optional.ofNullable(com.zaremate.tsa_anticheat.TsaInventory.get(uuid));
+    }
+
+    /** Request a fresh client inventory scan. Result is delivered asynchronously into getInventory(). */
+    public static boolean requestUnlistedScan(net.minecraft.server.level.ServerPlayer player) {
+        return com.zaremate.tsa_anticheat.TsaHashManager.startUnlisted(player, null);
+    }
+
+    /** Cached inventories from all players scanned since server start. */
+    public static java.util.Map<UUID, com.zaremate.tsa_anticheat.TsaInventory.Snapshot> getInventories() {
+        return com.zaremate.tsa_anticheat.TsaInventory.all();
+    }
+
+    /** Cached unallowlisted entries grouped by player UUID. */
+    public static java.util.Map<UUID, List<com.zaremate.tsa_anticheat.TsaInventory.Entry>> getAllUnlisted() {
+        java.util.Map<UUID, List<com.zaremate.tsa_anticheat.TsaInventory.Entry>> result = new java.util.LinkedHashMap<>();
+        getInventories().forEach((uuid, snapshot) -> result.put(uuid, snapshot.unlisted()));
+        return java.util.Map.copyOf(result);
+    }
+
+    /** Non-allowlisted mods and resource packs from the latest client scan. */
+    public static List<com.zaremate.tsa_anticheat.TsaInventory.Entry> getUnlisted(UUID uuid) {
+        return getInventory(uuid).map(com.zaremate.tsa_anticheat.TsaInventory.Snapshot::unlisted)
+                .orElseGet(List::of);
+    }
+
+    /** @deprecated Use requestUnlistedScan(ServerPlayer). */
+    @Deprecated
+    public static boolean requestUnallowlistedScan(net.minecraft.server.level.ServerPlayer player) {
+        return requestUnlistedScan(player);
+    }
+
+    /** @deprecated Use getUnlisted(UUID). */
+    @Deprecated
+    public static List<com.zaremate.tsa_anticheat.TsaInventory.Entry> getUnallowlisted(UUID uuid) {
+        return getUnlisted(uuid);
+    }
+
+    /** @deprecated Use getAllUnlisted(). */
+    @Deprecated
+    public static java.util.Map<UUID, List<com.zaremate.tsa_anticheat.TsaInventory.Entry>> getAllUnallowlisted() {
+        return getAllUnlisted();
     }
 
     public record PlayerRecord(

@@ -133,6 +133,7 @@ public final class TsaHashManager {
 
             if (hash.equalsIgnoreCase("EMPTY")) {
                 emptyFiles.add(pending.type() + " " + name + " (EMPTY)");
+                player.sendSystemMessage(Component.literal("[TSA] Empty " + pending.type() + ": " + name));
                 continue;
             }
             if (!hash.matches("[0-9a-f]{64}")) {

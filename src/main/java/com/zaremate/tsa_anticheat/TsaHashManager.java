@@ -135,7 +135,7 @@ public final class TsaHashManager {
                 continue;
             }
 
-            if (TsaInventory.EMPTY_SHA256.equalsIgnoreCase(hash)) {
+            if (TsaInventory.isEmptyHash(hash)) {
                 emptyFiles.add(pending.type() + " " + name + " [" + hash + "] (EMPTY)");
                 player.sendSystemMessage(Component.literal("[TSA] Empty " + pending.type()
                         + ": " + name + " [" + hash + "]"));

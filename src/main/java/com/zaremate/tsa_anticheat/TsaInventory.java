@@ -30,6 +30,8 @@ public final class TsaInventory {
 
     public static Snapshot get(UUID uuid) { return SNAPSHOTS.get(uuid); }
 
+    public static Map<UUID, Snapshot> all() { return Map.copyOf(SNAPSHOTS); }
+
     public static void clear() { SNAPSHOTS.clear(); }
 
     public static Snapshot capture(UUID uuid, String raw, int failures) {

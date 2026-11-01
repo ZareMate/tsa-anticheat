@@ -103,7 +103,9 @@ public final class TsaHashManager {
             TsaInventory.Snapshot inventory = TsaInventory.capture(player.uuid(), response.results(), response.failed());
             if ("UNALLOWED".equals(pending.type())) {
                 reportEmptyFiles(player, inventory, "UNALLOWLISTED INVENTORY SCAN");
-                player.publish(pending.requester(), TsaInventory.formatUnallowlisted(inventory, player.name()), "", false);
+                String message = TsaInventory.formatUnallowlisted(inventory, player.name());
+                if (pending.requester() == null) TsaAnticheat.LOGGER.info(message);
+                else player.publish(pending.requester(), message, "", false);
                 return;
             }
             handleDetectionResponse(player, pending.requester(), response);

@@ -113,6 +113,7 @@ public final class TsaHashManager {
         }
 
         int saved = 0;
+        java.util.List<String> emptyFiles = new java.util.ArrayList<>();
 
         for (String line : response.results().split("\\R")) {
             if (line.isBlank()) {
@@ -129,7 +130,7 @@ public final class TsaHashManager {
             String hash = line.substring(separator + 1).trim();
 
             if (hash.equalsIgnoreCase("EMPTY")) {
-                player.sendSystemMessage(Component.literal("[TSA] Empty " + pending.type() + ": " + name));
+                emptyFiles.add(pending.type() + " " + name + " (EMPTY)");
                 continue;
             }
             if (!hash.matches("[0-9a-f]{64}")) {
@@ -149,14 +150,17 @@ public final class TsaHashManager {
             }
         }
 
+        reportEmptyFiles(player, emptyFiles, "MANUAL HASH REQUEST");
+
         if ("*".equals(pending.name())) {
-            int total = saved + response.failed();
+            int total = saved + emptyFiles.size() + response.failed();
 
             player.sendSystemMessage(
                     Component.literal(
                             "Hashed " + saved + " " +
                             pending.type().toLowerCase() +
                             (saved == 1 ? "" : "s") +
+                            (emptyFiles.isEmpty() ? "" : " (" + emptyFiles.size() + " empty)") +
                             (response.failed() > 0
                                     ? " (" + response.failed() + " failed)"
                                     : "") +
@@ -179,7 +183,7 @@ public final class TsaHashManager {
                             "\nSaved to config/tsa_anticheat/generated_hashes.txt"
                     )
             );
-        } else {
+        } else if (emptyFiles.isEmpty()) {
             player.sendSystemMessage(
                     Component.literal(
                             "Could not hash local " +
@@ -289,10 +293,14 @@ public final class TsaHashManager {
     }
 
     static void reportEmptyFiles(PlayerSnapshot player, TsaInventory.Snapshot inventory, String context) {
-        if (inventory == null || inventory.emptyFiles().isEmpty()) return;
-        java.util.List<String> descriptions = inventory.emptyFiles().stream()
+        if (inventory == null) return;
+        reportEmptyFiles(player, inventory.emptyFiles().stream()
                 .map(entry -> entry.type() + " " + entry.name() + " (EMPTY)")
-                .toList();
+                .toList(), context);
+    }
+
+    static void reportEmptyFiles(PlayerSnapshot player, java.util.List<String> descriptions, String context) {
+        if (descriptions.isEmpty()) return;
         String message = "[TSA] " + player.name() + " reported empty files:" + System.lineSeparator()
                 + "- " + String.join(System.lineSeparator() + "- ", descriptions);
         player.publish(null, message, message);

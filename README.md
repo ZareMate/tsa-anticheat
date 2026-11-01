@@ -15,7 +15,7 @@ TSA hashes the normalized logical contents of ZIP/JAR files and folders, not the
 
 **Empty archives or folders:** TSA sends the literal `EMPTY` status rather than treating the empty SHA-256 value as a unique fingerprint. Empty entries are reported to authorized admins in Minecraft chat and Discord webhook (informational only, never directly punished). The empty entry is not saved to the generated-hashes file.
 
-**Automatic scans:** after the configured login delay, the server requests a client inventory scan. Detection policies still apply to nonempty entries. A client must be updated to this version to support the new `EMPTY` status and inventory requests.
+**Automatic scans:** after the configured login delay, the server requests a client inventory scan. Detection policies still apply to nonempty entries. The wire request reuses TSA's existing detection scan so older clients can still provide inventories, but updated clients are needed to emit the explicit `EMPTY` status. Older clients may report the old empty SHA-256 value instead.
 
 **Unallowlisted inventory:** `/tsa unallowed <player>` (or `/tsa unallowed all` for every online player) requests a fresh listing of the player's client-reported mods and resource packs whose hashes or names are not on the TSA allowlist. This is an inventory report, **not evidence of cheating**. It may be incomplete if files fail to hash, and clients can falsify their reports.
 

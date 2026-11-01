@@ -9,13 +9,22 @@ or `/tsa help 2` and `/tsa help 3` for additional pages. The guide
 lists syntax, descriptions, enforcement settings, and permission nodes.
 All help pages use the existing `tsa_anticheat.command` permission.
 
-## Hash formats
+## Content-based SHA-256
 
-TSA now hashes **ZIP/JAR files as raw bytes**, without inspecting archive entries. A different compression level, timestamp, or other ZIP metadata may change the hash.
+TSA hashes the normalized logical contents of ZIP/JAR files and folders, not their raw archive bytes. It sorts relative file paths and includes each path and its file bytes in the digest. Archive entry order, timestamps and compression level do not affect the hash. A folder and ZIP containing identical relative paths and files yield the same hash.
 
-For folders TSA builds a deterministic in-memory ZIP, then hashes those bytes. It matches the standalone Windows `tsa_hash_raw.py` script: relative paths sorted, forward slash separators, ZIP_STORED, fixed 1980-01-01 timestamps, Unix 0644 file attributes, and ZIP64 local size fields. Folder ZIPs are **not saved** by the mod.
+**Empty archives or folders:** TSA sends the literal `EMPTY` status rather than treating the empty SHA-256 value as a unique fingerprint. Empty entries are reported to authorized admins in Minecraft chat and Discord webhook (informational only, never directly punished). The empty entry is not saved to the generated-hashes file.
 
-**Breaking hash migration:** hashes previously collected for ZIP/JAR/folder packs may differ. Regenerate allowlist, blacklist and enforcement hashes and update clients before relying on the new scheme. Mixed client versions may report incompatible hashes.
+**Automatic scans:** after the configured login delay, the server requests a client inventory scan. Detection policies still apply to nonempty entries. A client must be updated to this version to support the new `EMPTY` status and inventory requests.
+
+**Unallowlisted inventory:** `/tsa unallowed <player>` requests a fresh listing of the player's client-reported mods and resource packs whose hashes or names are not on the TSA allowlist. This is an inventory report, **not evidence of cheating**. It may be incomplete if files fail to hash, and clients can falsify their reports.
+
+Server-side Java API:
+- `TsaAnticheatAPI.requestUnallowlistedScan(ServerPlayer)` requests a new scan (returns immediately).
+- `TsaAnticheatAPI.getInventory(UUID)` returns the latest timestamped snapshot, with full entries, allowlisted flags, empty flags and failed-file count.
+- `TsaAnticheatAPI.getUnallowlisted(UUID)` returns the currently cached non-allowlisted entries.
+
+The original normalized content hash format is retained for nonempty files, preserving existing content-hash blacklist and allowlist entries.
 
 ## Resource pack and mod detection
 
@@ -43,13 +52,11 @@ Renaming a pack or mod does not bypass a hash blacklist entry. A legitimate file
 
 ### Resource packs
 
-ZIP and JAR files are hashed from their complete raw bytes, including compression metadata and timestamps. Repacking an archive can change its hash even if its extracted contents stay the same.
-
-Folder resource packs are packed into deterministic ZIP bytes (sorted relative paths, fixed ZIP metadata), then SHA-256-hashed.
+ZIP archives and folders use the same sorted relative-path + file-content hashing scheme. Timestamps, compression settings and directory-only entries are ignored.
 
 ### Mods
 
-Mod JARs are SHA-256-hashed directly from their raw bytes. Renaming a JAR without modifying its bytes does not change its hash.
+JAR archives use the same normalized content hashing scheme; repacking without changing logical files preserves the hash.
 
 ## Configurable filename detection
 

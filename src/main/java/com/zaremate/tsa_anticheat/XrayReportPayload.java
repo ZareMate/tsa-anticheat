@@ -45,8 +45,12 @@ public record XrayReportPayload(String data) implements CustomPacketPayload {
         });
     }
 
-    private static void verifyAndWriteReports(PlayerSnapshot player, String data) {
-        TsaInventory.Snapshot inventory = TsaInventory.capture(player.uuid(), data, 0);
+    static void verifyAndWriteReports(PlayerSnapshot player, String data) {
+        verifyAndWriteReports(player, data, 0);
+    }
+
+    static void verifyAndWriteReports(PlayerSnapshot player, String data, int failures) {
+        TsaInventory.Snapshot inventory = TsaInventory.capture(player.uuid(), data, failures);
         TsaHashManager.reportEmptyFiles(player, inventory, "JOIN SCAN");
         Set<String> blacklistedHashes = new java.util.HashSet<>(TsaFilenameDetection.loadBlacklistedHashes());
 

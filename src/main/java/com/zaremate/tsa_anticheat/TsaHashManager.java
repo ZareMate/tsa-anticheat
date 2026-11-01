@@ -131,13 +131,14 @@ public final class TsaHashManager {
             String name = line.substring(0, separator);
             String hash = line.substring(separator + 1).trim();
 
-            if (hash.equalsIgnoreCase("EMPTY")) {
-                emptyFiles.add(pending.type() + " " + name + " (EMPTY)");
-                player.sendSystemMessage(Component.literal("[TSA] Empty " + pending.type() + ": " + name));
-                continue;
-            }
             if (!hash.matches("[0-9a-f]{64}")) {
                 continue;
+            }
+
+            if (TsaInventory.EMPTY_SHA256.equalsIgnoreCase(hash)) {
+                emptyFiles.add(pending.type() + " " + name + " [" + hash + "] (EMPTY)");
+                player.sendSystemMessage(Component.literal("[TSA] Empty " + pending.type()
+                        + ": " + name + " [" + hash + "]"));
             }
 
             try {
@@ -156,7 +157,7 @@ public final class TsaHashManager {
         reportEmptyFiles(player, emptyFiles, "MANUAL HASH REQUEST");
 
         if ("*".equals(pending.name())) {
-            int total = saved + emptyFiles.size() + response.failed();
+            int total = saved + response.failed();
 
             player.sendSystemMessage(
                     Component.literal(
@@ -186,7 +187,7 @@ public final class TsaHashManager {
                             "\nSaved to config/tsa_anticheat/generated_hashes.txt"
                     )
             );
-        } else if (emptyFiles.isEmpty()) {
+        } else {
             player.sendSystemMessage(
                     Component.literal(
                             "Could not hash local " +
@@ -298,7 +299,7 @@ public final class TsaHashManager {
     static void reportEmptyFiles(PlayerSnapshot player, TsaInventory.Snapshot inventory, String context) {
         if (inventory == null) return;
         reportEmptyFiles(player, inventory.emptyFiles().stream()
-                .map(entry -> entry.type() + " " + entry.name() + " (EMPTY)")
+                .map(entry -> entry.type() + " " + entry.name() + " [" + entry.hash() + "] (EMPTY)")
                 .toList(), context);
     }
 

@@ -20,7 +20,7 @@ public final class TsaInventory {
     public record Entry(String type, String name, String hash, boolean empty, boolean allowlisted) {}
     public record Snapshot(UUID playerUuid, Instant scannedAt, List<Entry> files, int failures) {
         public Snapshot { files = List.copyOf(files); }
-        public List<Entry> unallowlisted() {
+        public List<Entry> unlisted() {
             return files.stream().filter(entry -> !entry.allowlisted()).toList();
         }
         public List<Entry> emptyFiles() {
@@ -55,12 +55,12 @@ public final class TsaInventory {
         return snapshot;
     }
 
-    public static String formatUnallowlisted(Snapshot snapshot, String name) {
-        List<Entry> entries = snapshot.unallowlisted();
-        StringBuilder text = new StringBuilder("[TSA] Unallowlisted files for ").append(name)
+    public static String formatUnlisted(Snapshot snapshot, String name) {
+        List<Entry> entries = snapshot.unlisted();
+        StringBuilder text = new StringBuilder("[TSA] Unlisted files for ").append(name)
                 .append(": ").append(entries.size());
         if (snapshot.failures() > 0) text.append(" (").append(snapshot.failures()).append(" hash failures; incomplete)");
-        if (entries.isEmpty()) text.append("\nNo unallowlisted files reported.");
+        if (entries.isEmpty()) text.append("\nNo unlisted files reported.");
         for (Entry entry : entries) {
             text.append("\n- ").append(entry.type()).append(" ")
                 .append(entry.name()).append(" [")

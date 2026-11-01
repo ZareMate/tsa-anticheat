@@ -43,17 +43,25 @@ public final class TsaHashManager {
         );
     }
 
+    public static boolean startUnallowlisted(ServerPlayer player, UUID requester) {
+        return startInventoryScan(player, requester, "UNALLOWED");
+    }
+
     public static boolean startDetection(ServerPlayer player, UUID requester) {
+        return startInventoryScan(player, requester, "DETECTION");
+    }
+
+    private static boolean startInventoryScan(ServerPlayer player, UUID requester, String kind) {
         if (PENDING.putIfAbsent(
                 player.getUUID(),
-                new PendingRequest("DETECTION", "CURRENT", requester)
+                new PendingRequest(kind, "CURRENT", requester)
         ) != null) {
             return false;
         }
 
         PacketDistributor.sendToPlayer(
                 player,
-                new HashRequestPayload("DETECTION", "CURRENT")
+                new HashRequestPayload(kind, "CURRENT")
         );
 
         return true;
@@ -83,7 +91,7 @@ public final class TsaHashManager {
             return;
         }
 
-        if ("DETECTION".equals(pending.type())) {
+        if ("DETECTION".equals(pending.type()) || "UNALLOWED".equals(pending.type())) {\n            TsaInventory.Snapshot inventory = TsaInventory.capture(player.uuid(), response.results(), response.failed());\n            if ("UNALLOWED".equals(pending.type())) {\n                player.publish(pending.requester(), TsaInventory.formatUnallowlisted(inventory, player.name()), "", false);\n                return;\n            }
             handleDetectionResponse(player, pending.requester(), response);
             return;
         }
@@ -104,7 +112,7 @@ public final class TsaHashManager {
             String name = line.substring(0, separator);
             String hash = line.substring(separator + 1).trim();
 
-            if (!hash.matches("[0-9a-f]{64}")) {
+            if (hash.equalsIgnoreCase("EMPTY")) {\n                player.sendSystemMessage(Component.literal("[TSA] Empty " + pending.type() + ": " + name));\n                continue;\n            }\n            if (!hash.matches("[0-9a-f]{64}")) {
                 continue;
             }
 
@@ -167,7 +175,7 @@ public final class TsaHashManager {
             UUID requester,
             HashResponsePayload response
     ) {
-        var enforcementHashes = HashEnforcement.hashes();
+        var inventory = TsaInventory.get(target.uuid());\n        reportEmptyFiles(target, inventory, "MANUAL DETECTION SCAN");\n        var enforcementHashes = HashEnforcement.hashes();
         List<String> detections = new ArrayList<>();
 
         for (String line : response.results().split("\\R")) {
@@ -256,6 +264,19 @@ public final class TsaHashManager {
 
         target.publish(requester, "[TSA Anticheat] " + result, "[TSA Anticheat] " + result);
         HashEnforcement.finish(target, response.results(), detections, "MANUAL DETECTION SCAN");
+    }
+
+    static void reportEmptyFiles(PlayerSnapshot player, TsaInventory.Snapshot inventory, String context) {
+        if (inventory == null || inventory.emptyFiles().isEmpty()) return;
+        java.util.List<String> descriptions = inventory.emptyFiles().stream()
+                .map(entry -> entry.type() + " " + entry.name() + " (EMPTY)")
+                .toList();
+        String message = "[TSA] " + player.name() + " reported empty files:\
+- " + String.join("\
+- ", descriptions);
+        player.publish(null, message, message);
+        DiscordWebhook.sendDetection(player.name(), player.uuid().toString(), descriptions,
+                context + " — EMPTY FILES", "None — informational only.");
     }
 
     private static boolean isBlacklisted(String hash) {

@@ -133,10 +133,11 @@ public final class PacketIntegrityClient {
                     failed++;
                 } else {
                     try {
+                        var hash = ResourcePackHasher.hashWithInfo(entry);
                         results.add(
                                 entry.getFileName().toString() +
                                 "\t" +
-                                (ResourcePackHasher.hashWithInfo(entry).empty() ? "EMPTY" : ResourcePackHasher.hashWithInfo(entry).hash())
+                                (hash.empty() ? "EMPTY" : hash.hash())
                         );
                     } catch (Exception exception) {
                         failed++;

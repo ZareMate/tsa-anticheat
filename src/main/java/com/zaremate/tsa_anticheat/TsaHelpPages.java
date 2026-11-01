@@ -9,6 +9,7 @@ final class TsaHelpPages {
             case 1 -> new String[]{
                     "/tsa help [page]|Show this guide (pages 1-3)",
                     "/tsa detect <player>|Scan player's mods and resource packs",
+                    "/tsa unallowed <player>|List non-allowlisted mods and resource packs",
                     "/tsa packetcheck <player>|Run packet integrity check now",
                     "/tsa checkpacket <player>|Alias for packetcheck",
                     "/tsa logindelay [seconds]|View/set auto-login check delay (0-300s; default 5s)",

@@ -79,6 +79,24 @@ public final class TsaAnticheatAPI {
                 .orElseGet(List::of);
     }
 
+    /** @deprecated Use requestUnlistedScan(ServerPlayer). */
+    @Deprecated
+    public static boolean requestUnallowlistedScan(net.minecraft.server.level.ServerPlayer player) {
+        return requestUnlistedScan(player);
+    }
+
+    /** @deprecated Use getUnlisted(UUID). */
+    @Deprecated
+    public static List<com.zaremate.tsa_anticheat.TsaInventory.Entry> getUnallowlisted(UUID uuid) {
+        return getUnlisted(uuid);
+    }
+
+    /** @deprecated Use getAllUnlisted(). */
+    @Deprecated
+    public static java.util.Map<UUID, List<com.zaremate.tsa_anticheat.TsaInventory.Entry>> getAllUnallowlisted() {
+        return getAllUnlisted();
+    }
+
     public record PlayerRecord(
             UUID playerUuid,
             String playerName,

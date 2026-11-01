@@ -17,7 +17,7 @@ TSA hashes the normalized logical contents of ZIP/JAR files and folders, not the
 
 **Automatic scans:** after the configured login delay, the server requests a client inventory scan. Detection policies still apply to nonempty entries. A client must be updated to this version to support the new `EMPTY` status and inventory requests.
 
-**Unallowlisted inventory:** `/tsa unallowed <player>` requests a fresh listing of the player's client-reported mods and resource packs whose hashes or names are not on the TSA allowlist. This is an inventory report, **not evidence of cheating**. It may be incomplete if files fail to hash, and clients can falsify their reports.
+**Unallowlisted inventory:** `/tsa unallowed <player>` (or `/tsa unallowed all` for every online player) requests a fresh listing of the player's client-reported mods and resource packs whose hashes or names are not on the TSA allowlist. This is an inventory report, **not evidence of cheating**. It may be incomplete if files fail to hash, and clients can falsify their reports.
 
 Server-side Java API:
 - `TsaAnticheatAPI.requestUnallowlistedScan(ServerPlayer)` requests a new scan (returns immediately).

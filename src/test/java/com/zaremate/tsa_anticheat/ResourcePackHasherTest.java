@@ -52,6 +52,10 @@ class ResourcePackHasherTest {
         assertEquals(emptyHash, ResourcePackHasher.hashWithInfo(zip).hash());
         assertTrue(ResourcePackHasher.hashWithInfo(folder).empty());
         assertTrue(ResourcePackHasher.hashWithInfo(zip).empty());
+        assertTrue(TsaInventory.isEmptyHash(ResourcePackHasher.hash(folder)));
+        assertTrue(TsaInventory.isEmptyHash(ResourcePackHasher.hash(zip)));
+        assertTrue(TsaInventory.isEmptyHash(emptyHash.toUpperCase(java.util.Locale.ROOT)));
+        assertFalse(TsaInventory.isEmptyHash("a".repeat(64)));
     }
 
     @Test

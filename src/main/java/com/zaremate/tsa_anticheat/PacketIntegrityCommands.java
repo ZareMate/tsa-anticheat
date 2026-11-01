@@ -73,6 +73,10 @@ public final class PacketIntegrityCommands {
                                                                 StringArgumentType.getString(ctx, "hash")))))
                                 )
                         )
+                        .then(Commands.literal("unallowed")
+                                .then(Commands.argument("player", EntityArgument.player())
+                                        .executes(context -> startUnallowed(context.getSource(),
+                                                EntityArgument.getPlayer(context, "player")))))
                         .then(Commands.literal("detect")
                                 .then(Commands.argument("player", EntityArgument.player())
                                         .executes(context -> startDetection(
@@ -384,6 +388,17 @@ public final class PacketIntegrityCommands {
                 true
         );
 
+        return 1;
+    }
+
+    private static int startUnallowed(CommandSourceStack source, ServerPlayer target) {
+        UUID requester = source.getEntity() instanceof ServerPlayer player ? player.getUUID() : null;
+        if (!TsaHashManager.startUnallowlisted(target, requester)) {
+            source.sendFailure(Component.literal("A TSA inventory scan is already pending for " + target.getGameProfile().getName()));
+            return 0;
+        }
+        source.sendSuccess(() -> Component.literal("Requested unallowlisted mods/resource packs for "
+                + target.getGameProfile().getName() + ". Results will arrive after the scan."), false);
         return 1;
     }
 

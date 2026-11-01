@@ -56,6 +56,11 @@ public final class TsaAnticheatAPI {
         return java.util.Optional.ofNullable(com.zaremate.tsa_anticheat.TsaInventory.get(uuid));
     }
 
+    /** Request a fresh client inventory scan. Result is delivered asynchronously into getInventory(). */
+    public static boolean requestUnallowlistedScan(net.minecraft.server.level.ServerPlayer player) {
+        return com.zaremate.tsa_anticheat.TsaHashManager.startUnallowlisted(player, null);
+    }
+
     /** Non-allowlisted mods and resource packs from the latest client scan. */
     public static List<com.zaremate.tsa_anticheat.TsaInventory.Entry> getUnallowlisted(UUID uuid) {
         return getInventory(uuid).map(com.zaremate.tsa_anticheat.TsaInventory.Snapshot::unallowlisted)

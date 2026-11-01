@@ -7,7 +7,7 @@ final class DetectionNotice {
     static String description(String player, String uuid, List<String> detections, String context, String action) {
         StringBuilder result = new StringBuilder("Player: **").append(escape(player)).append("**\nUUID: `")
                 .append(escape(uuid)).append("`\nCheck: **").append(escape(context))
-                .append("**\nStatus: **").append(detections.isEmpty() ? "CLEAN" : "DETECTED")
+                .append("**\nStatus: **").append(context.contains("EMPTY FILES") ? "EMPTY (INFORMATIONAL)" : (detections.isEmpty() ? "CLEAN" : "DETECTED"))
                 .append("**\nAction taken: **").append(escape(action)).append("**\n\n");
         for (String detection : detections) result.append("- ").append(escape(detection)).append('\n');
         // Discord embed descriptions have a 4096-character limit. Keep the action before details.

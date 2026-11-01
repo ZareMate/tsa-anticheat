@@ -65,7 +65,7 @@ public final class TsaHashManager {
 
         PacketDistributor.sendToPlayer(
                 player,
-                new HashRequestPayload(kind, "CURRENT")
+                new HashRequestPayload("DETECTION", "CURRENT")
         );
 
         return true;
@@ -87,7 +87,9 @@ public final class TsaHashManager {
             return;
         }
 
-        if (!pending.type().equals(response.kind())
+        String expectedKind = ("JOIN_SCAN".equals(pending.type()) || "UNALLOWED".equals(pending.type()))
+                ? "DETECTION" : pending.type();
+        if (!expectedKind.equals(response.kind())
                 || !pending.name().equals(response.requestedName())) {
             player.sendSystemMessage(
                     Component.literal("[TSA] Ignored invalid hash response.")

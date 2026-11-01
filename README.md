@@ -13,9 +13,9 @@ All help pages use the existing `tsa_anticheat.command` permission.
 
 TSA hashes the normalized logical contents of ZIP/JAR files and folders, not their raw archive bytes. It sorts relative file paths and includes each path and its file bytes in the digest. Archive entry order, timestamps and compression level do not affect the hash. A folder and ZIP containing identical relative paths and files yield the same hash.
 
-**Empty archives or folders:** TSA sends the literal `EMPTY` status rather than treating the empty SHA-256 value as a unique fingerprint. Empty entries are reported to authorized admins in Minecraft chat and Discord webhook (informational only, never directly punished). The empty entry is not saved to the generated-hashes file.
+**Empty archives or folders:** TSA still returns the normal SHA-256 hash `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855`, which is the digest of empty input. TSA recognizes that digest as an empty pack and labels it `(EMPTY)` in Minecraft chat, inventory results and informational Discord webhook alerts. Empty hashes are saved normally by `/tsa hash` and can be placed on `allowed_hashes.txt` (ignored). Empty status alone never triggers punishment, and allowed hashes remain exempt from blacklist enforcement.
 
-**Automatic scans:** after the configured login delay, the server requests a client inventory scan. Detection policies still apply to nonempty entries. The wire request reuses TSA's existing detection scan so older clients can still provide inventories, but updated clients are needed to emit the explicit `EMPTY` status. Older clients may report the old empty SHA-256 value instead.
+**Automatic scans:** after the configured login delay, the server requests a client inventory scan. Detection policies still apply to nonempty entries. The wire request reuses TSA's existing detection scan, and the server identifies the empty SHA-256 value, so older clients report empty entries correctly without changing the packet format.
 
 **Unallowlisted inventory:** `/tsa unlisted <player>` (or `/tsa unlisted all` for every online player) requests a fresh listing of the player's client-reported mods and resource packs whose hashes or names are not on the TSA allowlist. This is an inventory report, **not evidence of cheating**. It may be incomplete if files fail to hash, and clients can falsify their reports.
 
@@ -24,7 +24,7 @@ Server-side Java API:
 - `TsaAnticheatAPI.getInventory(UUID)` returns the latest timestamped snapshot, with full entries, allowlisted flags, empty flags and failed-file count.
 - `TsaAnticheatAPI.getUnlisted(UUID)` returns the currently cached unlisted entries.
 
-The original normalized content hash format is retained for nonempty files, preserving existing content-hash blacklist and allowlist entries.
+The original normalized content hash format is retained for all files, including empty entries, preserving existing content-hash blacklist and allowlist entries.
 
 ## Resource pack and mod detection
 

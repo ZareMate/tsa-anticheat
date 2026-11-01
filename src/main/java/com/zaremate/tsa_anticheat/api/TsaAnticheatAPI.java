@@ -57,8 +57,8 @@ public final class TsaAnticheatAPI {
     }
 
     /** Request a fresh client inventory scan. Result is delivered asynchronously into getInventory(). */
-    public static boolean requestUnallowlistedScan(net.minecraft.server.level.ServerPlayer player) {
-        return com.zaremate.tsa_anticheat.TsaHashManager.startUnallowlisted(player, null);
+    public static boolean requestUnlistedScan(net.minecraft.server.level.ServerPlayer player) {
+        return com.zaremate.tsa_anticheat.TsaHashManager.startUnlisted(player, null);
     }
 
     /** Cached inventories from all players scanned since server start. */
@@ -67,15 +67,15 @@ public final class TsaAnticheatAPI {
     }
 
     /** Cached unallowlisted entries grouped by player UUID. */
-    public static java.util.Map<UUID, List<com.zaremate.tsa_anticheat.TsaInventory.Entry>> getAllUnallowlisted() {
+    public static java.util.Map<UUID, List<com.zaremate.tsa_anticheat.TsaInventory.Entry>> getAllUnlisted() {
         java.util.Map<UUID, List<com.zaremate.tsa_anticheat.TsaInventory.Entry>> result = new java.util.LinkedHashMap<>();
-        getInventories().forEach((uuid, snapshot) -> result.put(uuid, snapshot.unallowlisted()));
+        getInventories().forEach((uuid, snapshot) -> result.put(uuid, snapshot.unlisted()));
         return java.util.Map.copyOf(result);
     }
 
     /** Non-allowlisted mods and resource packs from the latest client scan. */
-    public static List<com.zaremate.tsa_anticheat.TsaInventory.Entry> getUnallowlisted(UUID uuid) {
-        return getInventory(uuid).map(com.zaremate.tsa_anticheat.TsaInventory.Snapshot::unallowlisted)
+    public static List<com.zaremate.tsa_anticheat.TsaInventory.Entry> getUnlisted(UUID uuid) {
+        return getInventory(uuid).map(com.zaremate.tsa_anticheat.TsaInventory.Snapshot::unlisted)
                 .orElseGet(List::of);
     }
 

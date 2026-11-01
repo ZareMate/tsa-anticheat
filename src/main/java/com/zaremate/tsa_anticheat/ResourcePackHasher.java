@@ -20,7 +20,13 @@ public final class ResourcePackHasher {
     private ResourcePackHasher() {
     }
 
-    public record HashResult(String hash, boolean empty) {}\n\n    public static String hash(Path resourcePack) throws IOException {\n        return hashWithInfo(resourcePack).hash();\n    }\n\n    public static HashResult hashWithInfo(Path resourcePack) throws IOException {
+    public record HashResult(String hash, boolean empty) {}
+
+    public static String hash(Path resourcePack) throws IOException {
+        return hashWithInfo(resourcePack).hash();
+    }
+
+    public static HashResult hashWithInfo(Path resourcePack) throws IOException {
         if (Files.isDirectory(resourcePack)) {
             return hashDirectoryResult(resourcePack);
         }

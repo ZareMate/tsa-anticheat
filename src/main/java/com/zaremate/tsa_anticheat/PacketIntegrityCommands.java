@@ -74,6 +74,8 @@ public final class PacketIntegrityCommands {
                                 )
                         )
                         .then(Commands.literal("unallowed")
+                                .then(Commands.literal("all")
+                                        .executes(context -> startUnallowedAll(context.getSource())))
                                 .then(Commands.argument("player", EntityArgument.player())
                                         .executes(context -> startUnallowed(context.getSource(),
                                                 EntityArgument.getPlayer(context, "player")))))
@@ -389,6 +391,20 @@ public final class PacketIntegrityCommands {
         );
 
         return 1;
+    }
+
+    private static int startUnallowedAll(CommandSourceStack source) {
+        UUID requester = source.getEntity() instanceof ServerPlayer player ? player.getUUID() : null;
+        int started = 0;
+        int busy = 0;
+        for (ServerPlayer player : source.getServer().getPlayerList().getPlayers()) {
+            if (TsaHashManager.startUnallowlisted(player, requester)) started++;
+            else busy++;
+        }
+        int scanned = started, skipped = busy;
+        source.sendSuccess(() -> Component.literal("Requested unallowlisted inventory from "
+                + scanned + " online players (" + skipped + " already scanning)."), false);
+        return started > 0 ? 1 : 0;
     }
 
     private static int startUnallowed(CommandSourceStack source, ServerPlayer target) {

@@ -14,6 +14,7 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 public final class TsaInventory {
     private static final Map<UUID, Snapshot> SNAPSHOTS = new ConcurrentHashMap<>();
+    public static final String EMPTY_SHA256 = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855";
 
     private TsaInventory() {}
 
@@ -44,11 +45,11 @@ public final class TsaInventory {
             if (!type.equals("MOD") && !type.equals("RESOURCE_PACK")) continue;
             String name = line.substring(first + 1, last);
             String hash = line.substring(last + 1).trim().toLowerCase(Locale.ROOT);
-            boolean empty = hash.equals("empty");
-            if (!empty && !hash.matches("[0-9a-f]{64}")) continue;
-            boolean allowed = !empty && (TsaFilenameDetection.isHashAllowed(hash)
-                    || TsaFilenameDetection.isAllowlisted(name));
-            entries.add(new Entry(type, name, empty ? "" : hash, empty, allowed));
+            if (!hash.matches("[0-9a-f]{64}")) continue;
+            boolean empty = EMPTY_SHA256.equals(hash);
+            boolean allowed = TsaFilenameDetection.isHashAllowed(hash)
+                    || TsaFilenameDetection.isAllowlisted(name);
+            entries.add(new Entry(type, name, hash, empty, allowed));
         }
         Snapshot snapshot = new Snapshot(uuid, Instant.now(), entries, failures);
         SNAPSHOTS.put(uuid, snapshot);
@@ -64,7 +65,8 @@ public final class TsaInventory {
         for (Entry entry : entries) {
             text.append("\n- ").append(entry.type()).append(" ")
                 .append(entry.name()).append(" [")
-                .append(entry.empty() ? "EMPTY" : entry.hash()).append("]");
+                .append(entry.hash()).append("]")
+                .append(entry.empty() ? " (EMPTY)" : "");
         }
         return text.toString();
     }

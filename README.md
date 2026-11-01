@@ -43,13 +43,13 @@ Renaming a pack or mod does not bypass a hash blacklist entry. A legitimate file
 
 ### Resource packs
 
-ZIP and JAR files are hashed from their raw file bytes. ZIP timestamps and compression metadata are ignored.
+ZIP and JAR files are hashed from their complete raw bytes, including compression metadata and timestamps. Repacking an archive can change its hash even if its extracted contents stay the same.
 
-Folder resource packs use the same canonical relative-path + file-content hashing scheme.
+Folder resource packs are packed into deterministic ZIP bytes (sorted relative paths, fixed ZIP metadata), then SHA-256-hashed.
 
 ### Mods
 
-Mod JARs are treated as ZIP files and hashed from their logical entries in sorted order, so changing the JAR filename does not change its hash.
+Mod JARs are SHA-256-hashed directly from their raw bytes. Renaming a JAR without modifying its bytes does not change its hash.
 
 ## Configurable filename detection
 

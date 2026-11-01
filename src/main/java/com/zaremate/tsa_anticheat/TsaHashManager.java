@@ -43,6 +43,10 @@ public final class TsaHashManager {
         );
     }
 
+    public static boolean startJoinScan(ServerPlayer player) {
+        return startInventoryScan(player, null, "JOIN_SCAN");
+    }
+
     public static boolean startUnallowlisted(ServerPlayer player, UUID requester) {
         return startInventoryScan(player, requester, "UNALLOWED");
     }
@@ -91,9 +95,14 @@ public final class TsaHashManager {
             return;
         }
 
+        if ("JOIN_SCAN".equals(pending.type())) {
+            XrayReportPayload.verifyAndWriteReports(player, response.results(), response.failed());
+            return;
+        }
         if ("DETECTION".equals(pending.type()) || "UNALLOWED".equals(pending.type())) {
             TsaInventory.Snapshot inventory = TsaInventory.capture(player.uuid(), response.results(), response.failed());
             if ("UNALLOWED".equals(pending.type())) {
+                reportEmptyFiles(player, inventory, "UNALLOWLISTED INVENTORY SCAN");
                 player.publish(pending.requester(), TsaInventory.formatUnallowlisted(inventory, player.name()), "", false);
                 return;
             }

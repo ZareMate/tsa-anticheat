@@ -17,12 +17,12 @@ TSA hashes the normalized logical contents of ZIP/JAR files and folders, not the
 
 **Automatic scans:** after the configured login delay, the server requests a client inventory scan. Detection policies still apply to nonempty entries. The wire request reuses TSA's existing detection scan so older clients can still provide inventories, but updated clients are needed to emit the explicit `EMPTY` status. Older clients may report the old empty SHA-256 value instead.
 
-**Unallowlisted inventory:** `/tsa unallowed <player>` (or `/tsa unallowed all` for every online player) requests a fresh listing of the player's client-reported mods and resource packs whose hashes or names are not on the TSA allowlist. This is an inventory report, **not evidence of cheating**. It may be incomplete if files fail to hash, and clients can falsify their reports.
+**Unallowlisted inventory:** `/tsa unlisted <player>` (or `/tsa unlisted all` for every online player) requests a fresh listing of the player's client-reported mods and resource packs whose hashes or names are not on the TSA allowlist. This is an inventory report, **not evidence of cheating**. It may be incomplete if files fail to hash, and clients can falsify their reports.
 
 Server-side Java API:
-- `TsaAnticheatAPI.requestUnallowlistedScan(ServerPlayer)` requests a new scan (returns immediately).
+- `TsaAnticheatAPI.requestUnlistedScan(ServerPlayer)` requests a new scan (returns immediately).
 - `TsaAnticheatAPI.getInventory(UUID)` returns the latest timestamped snapshot, with full entries, allowlisted flags, empty flags and failed-file count.
-- `TsaAnticheatAPI.getUnallowlisted(UUID)` returns the currently cached non-allowlisted entries.
+- `TsaAnticheatAPI.getUnlisted(UUID)` returns the currently cached unlisted entries.
 
 The original normalized content hash format is retained for nonempty files, preserving existing content-hash blacklist and allowlist entries.
 

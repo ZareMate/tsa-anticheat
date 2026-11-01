@@ -58,9 +58,9 @@ public final class TsaInventory {
         StringBuilder text = new StringBuilder("[TSA] Unallowlisted files for ").append(name)
                 .append(": ").append(entries.size());
         if (snapshot.failures() > 0) text.append(" (").append(snapshot.failures()).append(" hash failures; incomplete)");
-        if (entries.isEmpty()) text.append("\\nNo unallowlisted files reported.");
+        if (entries.isEmpty()) text.append("\nNo unallowlisted files reported.");
         for (Entry entry : entries) {
-            text.append("\\n- ").append(entry.type()).append(" ")
+            text.append("\n- ").append(entry.type()).append(" ")
                 .append(entry.name()).append(" [")
                 .append(entry.empty() ? "EMPTY" : entry.hash()).append("]");
         }

@@ -36,7 +36,7 @@ final class EnforcementPolicy {
             String type = line.substring(0, first).trim().toUpperCase(Locale.ROOT);
             if (!(type.equals("MOD") || type.equals("RESOURCE_PACK"))) continue;
             String hash = line.substring(last + 1).trim().toLowerCase(Locale.ROOT);
-            if (hash.matches("[0-9a-f]{64}") && enforcement.contains(hash) && !allowed.contains(hash)) {
+            if (hash.matches("[0-9a-f]{64}") && !TsaInventory.isEmptyHash(hash) && enforcement.contains(hash) && !allowed.contains(hash)) {
                 names.add(filename(line.substring(first + 1, last)));
             }
         }

@@ -11,7 +11,7 @@ public final class TsaAnticheatConfig {
     public static final ModConfigSpec.BooleanValue WEBHOOK_ENABLED =
             BUILDER.comment(
                     "Whether TSA security alerts are sent to Discord.",
-                    "Alerts include failed packet checks and blacklisted resource-pack detections.",
+                    "Alerts include failed packet checks, detections, empty files and unlisted inventory reports.",
                     "Default: false."
             ).define("webhook_enabled", false);
 

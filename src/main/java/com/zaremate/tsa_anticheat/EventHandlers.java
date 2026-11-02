@@ -34,6 +34,15 @@ public final class EventHandlers {
     @SubscribeEvent
     public static void onServerStarting(net.neoforged.neoforge.event.server.ServerStartingEvent event) {
         TsaWorker.start();
+        TsaWorker.execute(() -> {
+            try {
+                int added = HashFilenameStore.open(net.neoforged.fml.loading.FMLPaths.CONFIGDIR.get()
+                        .resolve(TsaAnticheat.MOD_ID)).importHistory();
+                TsaAnticheat.LOGGER.info("Imported {} historical hash-to-filename associations", added);
+            } catch (java.io.IOException error) {
+                TsaAnticheat.LOGGER.error("Could not import historical hash-to-filename associations", error);
+            }
+        });
         var directory = event.getServer().getServerDirectory();
         var allowlist = net.neoforged.fml.loading.FMLPaths.CONFIGDIR.get()
                 .resolve(TsaAnticheat.MOD_ID).resolve("allowed_hashes.txt");
@@ -53,6 +62,7 @@ public final class EventHandlers {
     @SubscribeEvent
     public static void onServerStopping(net.neoforged.neoforge.event.server.ServerStoppingEvent event) {
         TsaWorker.stop();
+        HashFilenameStore.clearCache();
         LOGIN_CHECKS.clear();
         INVENTORY_CHECKS.clear();
         PacketIntegrityManager.clear();
@@ -84,6 +94,7 @@ public final class EventHandlers {
     @SubscribeEvent
     public static void onServerTick(ServerTickEvent.Post event) {
         PacketIntegrityManager.expireChecks();
+        TsaHashManager.expireBatches();
         if (++historyRefreshTicks >= 20) {
             historyRefreshTicks = 0;
             refreshHistory();

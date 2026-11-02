@@ -187,6 +187,33 @@ public final class DiscordWebhook {
         }
     }
 
+    /** Sends the same single-player or combined report shown by /tsa unlisted. */
+    public static void sendUnlisted(String report) {
+        String url = TsaAnticheatConfig.webhookUrl();
+        if (!TsaAnticheatConfig.WEBHOOK_ENABLED.get() || url.isBlank()) return;
+        try {
+            URI uri = URI.create(url);
+            java.util.concurrent.CompletableFuture<Void> delivery =
+                    java.util.concurrent.CompletableFuture.completedFuture(null);
+            for (String json : UnlistedNotice.payloads(report)) {
+                HttpRequest request = HttpRequest.newBuilder().uri(uri)
+                        .header("Content-Type", "application/json")
+                        .POST(HttpRequest.BodyPublishers.ofString(json)).build();
+                // Preserve page order without blocking TSA's worker or the server thread.
+                delivery = delivery.thenCompose(ignored -> CLIENT.sendAsync(request, HttpResponse.BodyHandlers.discarding())
+                        .handle((response, error) -> {
+                            if (error != null) TsaAnticheat.LOGGER.warn("Discord unlisted webhook failed: {}", error.getMessage());
+                            else if (response.statusCode() < 200 || response.statusCode() >= 300) {
+                                TsaAnticheat.LOGGER.warn("Discord unlisted webhook returned HTTP {}", response.statusCode());
+                            }
+                            return (Void) null;
+                        }));
+            }
+        } catch (Exception error) {
+            TsaAnticheat.LOGGER.warn("Invalid Discord unlisted webhook URL: {}", error.getMessage());
+        }
+    }
+
     private static int colorFor(String status) {
         return switch (status.toUpperCase(Locale.ROOT)) {
             case "PASS" -> 3066993;

@@ -82,7 +82,7 @@ public record XrayReportPayload(String data) implements CustomPacketPayload {
                 continue;
             }
 
-            if (TsaFilenameDetection.isHashAllowed(hash)) {
+            if (TsaInventory.isEmptyHash(hash) || TsaFilenameDetection.isHashAllowed(hash)) {
                 continue;
             }
 

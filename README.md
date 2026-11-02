@@ -2,6 +2,8 @@
 
 NeoForge 1.21.1 / 21.1.249 client mod and server-side SHA-256 verifier for resource packs, mods, and TSA packet-integrity checks.
 
+Client startup uses the common mod entry point and server-requested scans. The obsolete empty client event subscriber was removed to fix NeoForge's startup error (`ClientEvents has no @SubscribeEvent methods`).
+
 ## In-game command help
 
 Use `/tsa help` to open page 1 of the complete command reference,
@@ -11,13 +13,23 @@ All help pages use the existing `tsa_anticheat.command` permission.
 
 ## Content-based SHA-256
 
+`/tsa lookup <sha256>` shows all recorded mod/resource-pack filenames associated with that hash, using the existing `tsa_anticheat.command` permission. Hashes are case-insensitive. From now on TSA records associations from login scans, manual detection scans, unlisted scans and `/tsa hash` responses in `config/tsa_anticheat/hash_filenames.tsv`. Multiple filenames and file types are retained across restarts; repeat observations are deduplicated. Unknown hashes return no results. These are client-reported associations, not proof of file identity or enforcement rules; empty and allowlisted files are recorded too.
+
+On each server startup, TSA also imports existing filename/hash pairs from `generated_hashes.txt` and UUID-named player detection reports in `config/tsa_anticheat/`. Imports run on the background worker, skip duplicates and malformed entries, and leave the source files unchanged. Bare hashes in allowlists/blacklists cannot supply filenames and are not imported. Deleted historical reports cannot be recovered.
+
+Filename history is loaded once per server session into a shared hash index. Scans check duplicates in memory and append only new associations; lookups access only the requested hash's entries. File I/O stays on the TSA worker. Memory use grows with the number of unique associations. Restart the server after manually editing `hash_filenames.tsv` so the index reloads those edits.
+
+Server integrations can call `TsaAnticheatAPI.lookupHashAsync(hash)` to retrieve the persistent associations without blocking the server thread. Each result contains `hash`, `type` and `filename`.
+
 TSA hashes the normalized logical contents of ZIP/JAR files and folders, not their raw archive bytes. It sorts relative file paths and includes each path and its file bytes in the digest. Archive entry order, timestamps and compression level do not affect the hash. A folder and ZIP containing identical relative paths and files yield the same hash.
 
-**Empty archives or folders:** TSA still returns the normal SHA-256 hash `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855`, which is the digest of empty input. TSA recognizes that digest as an empty pack and labels it `(EMPTY)` in Minecraft chat, inventory results and informational Discord webhook alerts. Empty hashes are saved normally by `/tsa hash` and can be placed on `allowed_hashes.txt` (ignored). Empty status alone never triggers punishment, and allowed hashes remain exempt from blacklist enforcement.
+**Empty archives or folders:** TSA still returns the normal SHA-256 hash `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855`, which is the digest of empty input. TSA recognizes that digest as an empty pack and labels it `(EMPTY)` in Minecraft chat, inventory results and informational Discord webhook alerts. Empty hashes are saved normally by `/tsa hash` and can be placed on `allowed_hashes.txt` (ignored). Whenever this hash is reported, TSA sends an informational empty-file webhook even if the hash or filename is allowlisted (webhooks must be enabled and configured). This hash never counts as a cheat detection or triggers punishment, even if blacklisted or manually listed for enforcement. Other allowed hashes remain exempt from blacklist enforcement.
 
 **Automatic scans:** after the configured login delay, the server requests a client inventory scan. Detection policies still apply to nonempty entries. The wire request reuses TSA's existing detection scan, and the server identifies the empty SHA-256 value, so older clients report empty entries correctly without changing the packet format.
 
-**Unallowlisted inventory:** `/tsa unlisted <player>` (or `/tsa unlisted all` for every online player) requests a fresh listing of the player's client-reported mods and resource packs whose hashes or names are not on the TSA allowlist. This is an inventory report, **not evidence of cheating**. It may be incomplete if files fail to hash, and clients can falsify their reports.
+**Player selectors:** `/tsa detect <player>`, `/tsa unlisted <player>`, `/tsa packetcheck <player>` and its `/tsa checkpacket <player>` alias accept player names and Minecraft selectors, including `@a` for all online players. For example: `/tsa detect @a` or `/tsa packetcheck @a`. Each selected player receives their own check. Multi-player `/tsa unlisted` selections return one combined inventory report, grouping identical type/name/hash entries and listing the players for each; `/tsa unlisted all` uses the same combined output. Other checks retain per-player results. A pending inventory scan skips only that player; other selected players are still processed. Selector access follows Minecraft's normal permission rules. `/tsa unlisted all` remains available. `/tsa hash` continues to hash the executing player's local files.
+
+**Unallowlisted inventory:** `/tsa unlisted <player>` (or `/tsa unlisted all` for every online player) requests a fresh listing of the player's client-reported mods and resource packs whose hashes or names are not on the TSA allowlist. Multi-player reports use fresh responses from that command and wait up to 60 seconds. Busy players, disconnects, invalid responses, timeouts and hash failures are marked as incomplete; stale cached inventories are not substituted. With webhooks enabled and configured, single-player and combined unlisted reports are also sent to Discord as informational inventory reports, including empty results and incomplete scans. Long reports are split into numbered pages, retaining the grouped entries and player names. This is an inventory report, **not evidence of cheating**. It may be incomplete if files fail to hash, and clients can falsify their reports.
 
 Server-side Java API:
 - `TsaAnticheatAPI.requestUnlistedScan(ServerPlayer)` requests a new scan (returns immediately).
@@ -237,7 +249,7 @@ The server cannot autocomplete arbitrary local filenames because it does not hav
 
 ## Public API
 
-Other server-side mods can read TSA data through:
+Other server-side mods can read TSA data and manage its lists and configuration through:
 
 ```java
 import com.zaremate.tsa_anticheat.api.TsaAnticheatAPI;
@@ -258,6 +270,59 @@ A `PlayerRecord` contains:
 - stored resource-pack/mod detection lines
 
 The API returns immutable snapshots and does not expose the internal file format.
+
+### List and configuration management
+
+Management methods on `com.zaremate.tsa_anticheat.api.TsaAnticheatAPI` return `CompletableFuture` results and run on TSA's ordered background worker. Call them while the server is running, after the common config loads. Chain futures to order dependent operations; never call `join()` or `get()` on the Minecraft server thread. Completion callbacks run on the worker unless you choose another executor; schedule Minecraft operations back onto the server thread.
+
+```java
+import com.zaremate.tsa_anticheat.api.HashList;
+import com.zaremate.tsa_anticheat.api.TsaSetting;
+import com.zaremate.tsa_anticheat.api.GeneratedHash;
+import com.zaremate.tsa_anticheat.api.TsaAnticheatAPI;
+
+// Each operational list supports the same read/add/remove operations.
+TsaAnticheatAPI.getHashesAsync(HashList.ALLOWED).thenAccept(hashes -> { /* render */ });
+TsaAnticheatAPI.addHashAsync(HashList.BLACKLISTED, sha256);
+TsaAnticheatAPI.removeHashAsync(HashList.ENFORCEMENT, sha256);
+
+// Persist enforcement settings, then list the new configuration.
+TsaAnticheatAPI.setSettingAsync(TsaSetting.TEMPBAN_SECONDS, 1800)
+        .thenCompose(changed -> TsaAnticheatAPI.setSettingAsync(TsaSetting.ENFORCEMENT_MODE, "tempban"))
+        .thenCompose(changed -> TsaAnticheatAPI.getSettingsAsync())
+        .thenAccept(settings -> { /* render */ });
+
+// File-based filename exemptions and the two config lists are independent.
+TsaAnticheatAPI.getAllowedFilenamesAsync();
+TsaAnticheatAPI.addAllowedFilenameAsync("My-Ray-Pack.zip");
+TsaAnticheatAPI.removeAllowedFilenameAsync("My-Ray-Pack.zip");
+TsaAnticheatAPI.addSettingEntryAsync(TsaSetting.FILENAME_DETECTION_KEYWORDS, "x-ray");
+TsaAnticheatAPI.removeSettingEntryAsync(TsaSetting.RAY_FILENAME_ALLOWLIST, "My-Ray-Pack.zip");
+
+// Generated hashes are history, not rules. Remove by full type/name/hash entry.
+TsaAnticheatAPI.getGeneratedHashesAsync();
+GeneratedHash entry = new GeneratedHash("MOD", "example.jar", sha256);
+TsaAnticheatAPI.addGeneratedHashAsync(entry);
+TsaAnticheatAPI.removeGeneratedHashAsync(entry);
+```
+
+- `HashList.ALLOWED`, `BLACKLISTED` and `ENFORCEMENT` map to the existing `allowed_hashes.txt`, `blacklisted_hashes.txt` and `enforcement_hashes.txt` files. Hashes must be exactly 64 hexadecimal characters and are trimmed and normalized to lowercase. Lists remain independent; allowlisting takes precedence over detection/enforcement. Removing a blacklist entry does not prevent filename detection from adding it again.
+- Hash, filename and generated-history edits return `true` when changed and `false` for an already-present addition or absent removal. Removes clear duplicate/case-equivalent entries. File edits preserve unrelated entries, comments and malformed lines and replace files atomically where supported. Errors complete futures exceptionally rather than pretending the list is empty or the edit succeeded.
+- Filename edits and config-list entry edits use TSA's filename sanitization for matching. `getAllowedFilenamesAsync()` reads `allowed_names.txt`; the separate `RAY_FILENAME_ALLOWLIST` config setting can also exempt a filename, so removing it from only one source may leave the exemption active.
+- `getGeneratedHashesAsync()` returns immutable `GeneratedHash` entries (`MOD` or `RESOURCE_PACK`, name, hash). New entries reject blank names, pipes and control characters. Generated history never changes allowlists, blacklists or enforcement rules.
+- `getSettingsAsync()` returns an immutable `Map<TsaSetting, Object>` containing every common setting. `setSettingAsync(setting, value)` validates, applies and saves one setting, returning whether it changed. List inputs are copied before being queued. `addSettingEntryAsync` and `removeSettingEntryAsync` apply only to the two list-valued settings and preserve other entries.
+
+| Setting | Java value type / accepted values |
+| --- | --- |
+| `WEBHOOK_ENABLED`, `BYPASS_DISABLED_JARS`, `PACKET_CHECK_ON_LOGIN` | `Boolean` |
+| `WEBHOOK_URL`, `COMMAND_PERMISSION`, `BROADCAST_PERMISSION`, `BYPASS_PERMISSION` | `String` |
+| `FILENAME_DETECTION_KEYWORDS`, `RAY_FILENAME_ALLOWLIST` | `List<String>`; empty list allowed |
+| `LOGIN_CHECK_DELAY_SECONDS` | `Integer`, 0–300 |
+| `PACKET_CHECK_TIMEOUT_SECONDS` | `Integer`, 1–300 |
+| `ENFORCEMENT_MODE` | `String`: `off`, `kick`, `tempban` |
+| `TEMPBAN_SECONDS` | `Integer`, 1–31,536,000 |
+
+These are trusted in-process Java APIs, with no command permission checks or HTTP endpoints. An integrating panel or mod must authorize its own users and keep `WEBHOOK_URL` private. Settings persist to the existing common TOML config and affect future operations; active checks, previously captured inventories and existing Punish bans are not rewritten. Request a fresh scan to refresh inventory allowlisted flags. The empty SHA-256 digest remains informational and exempt from enforcement. Automatically scanned server hashes can be re-added to the allowlist on the next server start. Stopped or overloaded workers reject requests through failed futures.
 
 ## Admin Notes integration
 

@@ -25,6 +25,9 @@ public final class PacketIntegrityCommands {
                 Commands.literal("tsa")
                         .requires(TsaPermissions::canUseCommands)
                         .then(EnforcementCommands.node())
+                        .then(Commands.literal("lookup")
+                                .then(Commands.argument("hash", StringArgumentType.word())
+                                        .executes(ctx -> lookupHash(ctx.getSource(), StringArgumentType.getString(ctx, "hash")))))
                         .then(Commands.literal("help")
                                 .executes(context -> TsaHelp.show(context.getSource(), 1))
                                 .then(Commands.argument("page", IntegerArgumentType.integer(1, 3))
@@ -42,20 +45,20 @@ public final class PacketIntegrityCommands {
                                 .then(Commands.literal("false")
                                         .executes(context -> disabledJars(context.getSource(), false))))
                         .then(Commands.literal("packetcheck")
-                                .then(Commands.argument("player", EntityArgument.player())
-                                        .executes(context -> startCheck(
+                                .then(Commands.argument("player", EntityArgument.players())
+                                        .executes(context -> startChecks(
                                                 context.getSource(),
-                                                EntityArgument.getPlayer(
+                                                EntityArgument.getPlayers(
                                                         context,
                                                         "player"
                                                 )
                                         )))
                         )
                         .then(Commands.literal("checkpacket")
-                                .then(Commands.argument("player", EntityArgument.player())
-                                        .executes(context -> startCheck(
+                                .then(Commands.argument("player", EntityArgument.players())
+                                        .executes(context -> startChecks(
                                                 context.getSource(),
-                                                EntityArgument.getPlayer(
+                                                EntityArgument.getPlayers(
                                                         context,
                                                         "player"
                                                 )
@@ -76,14 +79,14 @@ public final class PacketIntegrityCommands {
                         .then(Commands.literal("unlisted")
                                 .then(Commands.literal("all")
                                         .executes(context -> startUnlistedAll(context.getSource())))
-                                .then(Commands.argument("player", EntityArgument.player())
-                                        .executes(context -> startUnlisted(context.getSource(),
-                                                EntityArgument.getPlayer(context, "player")))))
+                                .then(Commands.argument("player", EntityArgument.players())
+                                        .executes(context -> startUnlistedTargets(context.getSource(),
+                                                EntityArgument.getPlayers(context, "player")))))
                         .then(Commands.literal("detect")
-                                .then(Commands.argument("player", EntityArgument.player())
-                                        .executes(context -> startDetection(
+                                .then(Commands.argument("player", EntityArgument.players())
+                                        .executes(context -> startDetections(
                                                 context.getSource(),
-                                                EntityArgument.getPlayer(context, "player")
+                                                EntityArgument.getPlayers(context, "player")
                                         )))
                         )
                         .then(Commands.literal("allow")
@@ -219,6 +222,26 @@ public final class PacketIntegrityCommands {
             }
         });
         return 1;
+    }
+
+    private static int lookupHash(CommandSourceStack source, String hash) {
+        final String normalized;
+        try { normalized = HashFilenameStore.normalizeHash(hash); }
+        catch (IllegalArgumentException error) {
+            source.sendFailure(Component.literal(error.getMessage()));
+            return 0;
+        }
+        return runAsync(source, reply -> {
+            try {
+                var entries = HashFilenameStore.open(net.neoforged.fml.loading.FMLPaths.CONFIGDIR.get()
+                        .resolve("tsa_anticheat")).lookup(normalized);
+                reply.sendSuccess(() -> Component.literal("[TSA] Known client-reported filenames for " + normalized
+                        + ": " + entries.size()), false);
+                if (entries.isEmpty()) reply.sendSuccess(() -> Component.literal("No filenames recorded for this hash."), false);
+                for (var entry : entries) reply.sendSuccess(() -> Component.literal("- " + entry.type() + " " + entry.filename()), false);
+                return entries.size();
+            } catch (java.io.IOException error) { throw new java.io.UncheckedIOException(error); }
+        });
     }
 
     private static int removeDetections(CommandSourceStack source, String selector, String value) {
@@ -375,6 +398,26 @@ public final class PacketIntegrityCommands {
         return 1;
     }
 
+    private static int startChecks(CommandSourceStack source, java.util.Collection<ServerPlayer> targets) {
+        return CommandTargets.forEach(targets, target -> startCheck(source, target));
+    }
+
+    private static int startDetections(CommandSourceStack source, java.util.Collection<ServerPlayer> targets) {
+        return CommandTargets.forEach(targets, target -> startDetection(source, target));
+    }
+
+    private static int startUnlistedTargets(CommandSourceStack source, java.util.Collection<ServerPlayer> targets) {
+        if (targets.size() == 1) return startUnlisted(source, targets.iterator().next());
+        UUID requester = source.getEntity() instanceof ServerPlayer player ? player.getUUID() : null;
+        var server = source.getServer();
+        int started = TsaHashManager.startUnlistedBatch(targets, requester, message -> server.execute(() -> {
+            if (server.isRunning()) source.sendSuccess(() -> Component.literal(message), false);
+        }));
+        source.sendSuccess(() -> Component.literal("Requested combined unlisted inventory from "
+                + started + " players (" + (targets.size() - started) + " already scanning)."), false);
+        return started;
+    }
+
     private static int startCheck(CommandSourceStack source, ServerPlayer target) {
         UUID requester = source.getEntity() instanceof ServerPlayer player
                 ? player.getUUID()
@@ -394,22 +437,12 @@ public final class PacketIntegrityCommands {
     }
 
     private static int startUnlistedAll(CommandSourceStack source) {
-        UUID requester = source.getEntity() instanceof ServerPlayer player ? player.getUUID() : null;
-        int started = 0;
-        int busy = 0;
-        for (ServerPlayer player : source.getServer().getPlayerList().getPlayers()) {
-            if (TsaHashManager.startUnallowlisted(player, requester)) started++;
-            else busy++;
-        }
-        int scanned = started, skipped = busy;
-        source.sendSuccess(() -> Component.literal("Requested unlisted inventory from "
-                + scanned + " online players (" + skipped + " already scanning)."), false);
-        return started > 0 ? 1 : 0;
+        return startUnlistedTargets(source, source.getServer().getPlayerList().getPlayers());
     }
 
     private static int startUnlisted(CommandSourceStack source, ServerPlayer target) {
         UUID requester = source.getEntity() instanceof ServerPlayer player ? player.getUUID() : null;
-        if (!TsaHashManager.startUnallowlisted(target, requester)) {
+        if (!TsaHashManager.startUnlisted(target, requester)) {
             source.sendFailure(Component.literal("A TSA inventory scan is already pending for " + target.getGameProfile().getName()));
             return 0;
         }

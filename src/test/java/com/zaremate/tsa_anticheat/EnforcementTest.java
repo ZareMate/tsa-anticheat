@@ -18,6 +18,15 @@ class EnforcementTest {
     @Test void allowlistAlwaysOverridesEnforcement() {
         assertEquals(List.of("Pack.zip"), EnforcementPolicy.matchingFiles(report(), Set.of(HASH, OTHER), Set.of(HASH)));
     }
+    @Test void emptyHashNeverTriggersEnforcementEvenWithoutAllowlist() {
+        String empty = TsaInventory.EMPTY_SHA256;
+        String report = "MOD\txray.jar\t" + empty.toUpperCase(Locale.ROOT)
+                + "\nRESOURCE_PACK\txray.zip\t" + empty + "\nMOD\tCheat.jar\t" + HASH;
+        for (Set<String> allowed : List.of(Set.<String>of(), Set.of(empty))) {
+            assertEquals(List.of("Cheat.jar"),
+                    EnforcementPolicy.matchingFiles(report, Set.of(empty, HASH), allowed));
+        }
+    }
     @Test void modeIsExclusiveAndRequiresAMatchingFile() {
         for (String mode : List.of("off", "kick", "tempban")) {
             assertEquals("off", EnforcementPolicy.action(mode, List.of()));

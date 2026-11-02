@@ -8,10 +8,10 @@ final class TsaHelpPages {
         return switch (page) {
             case 1 -> new String[]{
                     "/tsa help [page]|Show this guide (pages 1-3)",
-                    "/tsa detect <player>|Scan player's mods and resource packs",
-                    "/tsa unlisted <player>|List unlisted mods and resource packs",
-                    "/tsa unlisted all|Scan all online players for unallowlisted files",
-                    "/tsa packetcheck <player>|Run packet integrity check now",
+                    "/tsa detect <player>|Scan mods and resource packs (name or selector, e.g. @a)",
+                    "/tsa unlisted <player>|List unlisted files; @a combines matching entries and players",
+                    "/tsa unlisted all|Combined unlisted report for all online players",
+                    "/tsa packetcheck <player>|Run packet integrity check now (name or selector, e.g. @a)",
                     "/tsa checkpacket <player>|Alias for packetcheck",
                     "/tsa logindelay [seconds]|View/set auto-login check delay (0-300s; default 5s)",
                     "/tsa disabledjars [true|false]|Exempt .jar.disabled mods from punishment only",
@@ -19,6 +19,7 @@ final class TsaHelpPages {
                     "/tsa detection remove hash <sha256>|Remove detections by hash for all players"
             };
             case 2 -> new String[]{
+                    "/tsa lookup <sha256>|Look up all recorded filenames for a hash",
                     "/tsa allow <name-or-hash>|Allow an exact filename or SHA-256 hash",
                     "/tsa allow name <filename>|Allow a filename from keyword detection",
                     "/tsa allow hash <sha256>|Allow a SHA-256 hash",

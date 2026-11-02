@@ -20,9 +20,18 @@ public final class TsaHashManager {
     private static final Map<UUID, PendingRequest> PENDING =
             new ConcurrentHashMap<>();
 
-    static void forget(UUID uuid) { PENDING.remove(uuid); }
+    private static final Map<UUID, BatchRequest> BATCHES = new ConcurrentHashMap<>();
+    private static final long BATCH_TIMEOUT_MILLIS = 60_000;
 
-    static void clear() { PENDING.clear(); }
+    private record BatchRequest(UnlistedBatch results, java.util.function.Consumer<String> reply,
+                                long deadline, java.util.concurrent.atomic.AtomicBoolean expiring) {}
+
+    static void forget(UUID uuid) {
+        PendingRequest pending = PENDING.remove(uuid);
+        if (pending != null) failBatch(pending, uuid, "disconnected");
+    }
+
+    static void clear() { PENDING.clear(); BATCHES.clear(); }
 
     private TsaHashManager() {
     }
@@ -49,6 +58,61 @@ public final class TsaHashManager {
 
     public static boolean startUnlisted(ServerPlayer player, UUID requester) {
         return startInventoryScan(player, requester, "UNLISTED");
+    }
+
+    /** Server-thread command entry point for one combined multi-player report. */
+    static int startUnlistedBatch(java.util.Collection<ServerPlayer> targets, UUID requester,
+                                  java.util.function.Consumer<String> reply) {
+        Map<UUID, String> names = new java.util.LinkedHashMap<>();
+        for (ServerPlayer player : targets) names.put(player.getUUID(), player.getGameProfile().getName());
+        UUID id = UUID.randomUUID();
+        UnlistedBatch results = new UnlistedBatch(names);
+        BATCHES.put(id, new BatchRequest(results, reply, System.currentTimeMillis() + BATCH_TIMEOUT_MILLIS,
+                new java.util.concurrent.atomic.AtomicBoolean()));
+        int started = 0;
+        for (ServerPlayer player : targets) {
+            if (PENDING.putIfAbsent(player.getUUID(), new PendingRequest("UNLISTED", "CURRENT", requester, id)) != null) {
+                results.skip(player.getUUID(), "already scanning");
+                continue;
+            }
+            PacketDistributor.sendToPlayer(player, new HashRequestPayload("DETECTION", "CURRENT"));
+            started++;
+        }
+        TsaWorker.execute(() -> finishBatch(id));
+        return started;
+    }
+
+    static void expireBatches() {
+        long now = System.currentTimeMillis();
+        BATCHES.forEach((id, batch) -> {
+            if (now >= batch.deadline() && batch.expiring().compareAndSet(false, true)) {
+                TsaWorker.execute(() -> {
+                    // Remove only requests belonging to this command; never cancel a newer scan.
+                    PENDING.entrySet().removeIf(entry -> id.equals(entry.getValue().batch()));
+                    batch.results().timeout();
+                    finishBatch(id);
+                });
+            }
+        });
+    }
+
+    private static void failBatch(PendingRequest pending, UUID player, String reason) {
+        if (pending.batch() == null) return;
+        TsaWorker.execute(() -> {
+            BatchRequest batch = BATCHES.get(pending.batch());
+            if (batch == null) return;
+            batch.results().skip(player, reason);
+            finishBatch(pending.batch());
+        });
+    }
+
+    private static void finishBatch(UUID id) {
+        BatchRequest batch = BATCHES.get(id);
+        if (batch != null && batch.results().complete() && BATCHES.remove(id, batch)) {
+            String message = batch.results().format();
+            DiscordWebhook.sendUnlisted(message);
+            batch.reply().accept(message);
+        }
     }
 
     public static boolean startDetection(ServerPlayer player, UUID requester) {
@@ -91,6 +155,7 @@ public final class TsaHashManager {
                 ? "DETECTION" : pending.type();
         if (!expectedKind.equals(response.kind())
                 || !pending.name().equals(response.requestedName())) {
+            failBatch(pending, player.uuid(), "invalid response");
             player.sendSystemMessage(
                     Component.literal("[TSA] Ignored invalid hash response.")
             );
@@ -105,7 +170,16 @@ public final class TsaHashManager {
             TsaInventory.Snapshot inventory = TsaInventory.capture(player.uuid(), response.results(), response.failed());
             if ("UNLISTED".equals(pending.type())) {
                 reportEmptyFiles(player, inventory, "UNLISTED INVENTORY SCAN");
+                if (pending.batch() != null) {
+                    BatchRequest batch = BATCHES.get(pending.batch());
+                    if (batch != null) {
+                        batch.results().accept(player.uuid(), inventory);
+                        finishBatch(pending.batch());
+                    }
+                    return;
+                }
                 String message = TsaInventory.formatUnlisted(inventory, player.name());
+                DiscordWebhook.sendUnlisted(message);
                 if (pending.requester() == null) TsaAnticheat.LOGGER.info(message);
                 else player.publish(pending.requester(), message, "", false);
                 return;
@@ -115,6 +189,7 @@ public final class TsaHashManager {
         }
 
         int saved = 0;
+        List<TsaInventory.Entry> observed = new ArrayList<>();
         java.util.List<String> emptyFiles = new java.util.ArrayList<>();
 
         for (String line : response.results().split("\\R")) {
@@ -141,6 +216,8 @@ public final class TsaHashManager {
                         + ": " + name + " [" + hash + "]"));
             }
 
+            observed.add(new TsaInventory.Entry(pending.type(), name, hash, false, false));
+
             try {
                 saveGeneratedHash(pending.type(), name, hash);
                 saved++;
@@ -154,6 +231,7 @@ public final class TsaHashManager {
             }
         }
 
+        TsaInventory.rememberFiles(observed);
         reportEmptyFiles(player, emptyFiles, "MANUAL HASH REQUEST");
 
         if ("*".equals(pending.name())) {
@@ -231,7 +309,7 @@ public final class TsaHashManager {
                 continue;
             }
 
-            if (TsaFilenameDetection.isHashAllowed(hash)) {
+            if (TsaInventory.isEmptyHash(hash) || TsaFilenameDetection.isHashAllowed(hash)) {
                 continue;
             }
 
@@ -414,7 +492,9 @@ public final class TsaHashManager {
     private record PendingRequest(
             String type,
             String name,
-            UUID requester
+            UUID requester,
+            UUID batch
     ) {
+        PendingRequest(String type, String name, UUID requester) { this(type, name, requester, null); }
     }
 }

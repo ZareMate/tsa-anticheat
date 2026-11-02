@@ -56,8 +56,20 @@ public final class TsaInventory {
             entries.add(new Entry(type, name, hash, empty, allowed));
         }
         Snapshot snapshot = new Snapshot(uuid, Instant.now(), entries, failures);
+        rememberFiles(entries);
         SNAPSHOTS.put(uuid, snapshot);
         return snapshot;
+    }
+
+    static void rememberFiles(List<Entry> entries) {
+        try {
+            HashFilenameStore.open(net.neoforged.fml.loading.FMLPaths.CONFIGDIR.get().resolve("tsa_anticheat"))
+                    .remember(entries.stream().filter(entry -> !entry.name().isBlank()
+                            && entry.name().chars().noneMatch(Character::isISOControl))
+                            .map(entry -> new HashFilenameStore.Entry(entry.hash(), entry.type(), entry.name())).toList());
+        } catch (java.io.IOException exception) {
+            TsaAnticheat.LOGGER.warn("Failed to save hash-to-filename history", exception);
+        }
     }
 
     public static String formatUnlisted(Snapshot snapshot, String name) {

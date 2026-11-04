@@ -40,7 +40,7 @@ public record HashResponsePayload(
 
     public static void handle(HashResponsePayload payload, IPayloadContext context) {
         context.enqueueWork(() -> {
-            if (context.player() instanceof ServerPlayer player) {
+            if (context.player() instanceof ServerPlayer player && player.server.isDedicatedServer()) {
                 TsaHashManager.handleResponse(player, payload);
             }
         });

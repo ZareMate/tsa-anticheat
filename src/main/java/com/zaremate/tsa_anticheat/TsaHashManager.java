@@ -41,6 +41,7 @@ public final class TsaHashManager {
             String type,
             String name
     ) {
+        if (!player.server.isDedicatedServer()) return;
         PENDING.put(
                 player.getUUID(),
                 new PendingRequest(type, name, null)
@@ -120,6 +121,7 @@ public final class TsaHashManager {
     }
 
     private static boolean startInventoryScan(ServerPlayer player, UUID requester, String kind) {
+        if (!player.server.isDedicatedServer()) return false;
         if (PENDING.putIfAbsent(
                 player.getUUID(),
                 new PendingRequest(kind, "CURRENT", requester)
@@ -139,6 +141,7 @@ public final class TsaHashManager {
             ServerPlayer player,
             HashResponsePayload response
     ) {
+        if (!player.server.isDedicatedServer()) return;
         PlayerSnapshot snapshot = PlayerSnapshot.capture(player);
         PendingRequest pending = PENDING.remove(player.getUUID());
         if (pending == null) return;

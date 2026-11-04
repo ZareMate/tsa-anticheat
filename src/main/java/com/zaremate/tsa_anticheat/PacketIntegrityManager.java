@@ -30,6 +30,7 @@ public final class PacketIntegrityManager {
     }
 
     public static void start(ServerPlayer player, UUID requester) {
+        if (!player.server.isDedicatedServer()) return;
         PlayerSnapshot snapshot = PlayerSnapshot.capture(player);
         TsaWorker.execute(() -> {
             String challenge = randomChallenge();
@@ -42,6 +43,7 @@ public final class PacketIntegrityManager {
     }
 
     public static void handleResponse(ServerPlayer player, PacketIntegrityResponsePayload response) {
+        if (!player.server.isDedicatedServer()) return;
         PendingCheck pending = PENDING.remove(player.getUUID());
         if (pending == null) return;
         long receivedAt = System.currentTimeMillis();

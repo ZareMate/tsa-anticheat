@@ -28,7 +28,7 @@ public record PacketIntegrityResponsePayload(String challenge, String response) 
 
     public static void handle(PacketIntegrityResponsePayload payload, IPayloadContext context) {
         context.enqueueWork(() -> {
-            if (context.player() instanceof ServerPlayer player) {
+            if (context.player() instanceof ServerPlayer player && player.server.isDedicatedServer()) {
                 PacketIntegrityManager.handleResponse(player, payload);
             }
         });

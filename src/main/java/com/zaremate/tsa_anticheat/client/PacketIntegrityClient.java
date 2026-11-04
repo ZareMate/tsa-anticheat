@@ -30,6 +30,7 @@ public final class PacketIntegrityClient {
 
     public static void handleChallenge(PacketIntegrityChallengePayload payload) {
         var minecraft = Minecraft.getInstance();
+        if (minecraft.hasSingleplayerServer()) return;
         var gameProfile = minecraft.getGameProfile();
 
         if (gameProfile == null || minecraft.player == null) {
@@ -51,6 +52,7 @@ public final class PacketIntegrityClient {
 
     public static void handleHashRequest(HashRequestPayload payload) {
         var minecraft = Minecraft.getInstance();
+        if (minecraft.hasSingleplayerServer()) return;
         Path gameDirectory = minecraft.gameDirectory.toPath();
 
         HASH_EXECUTOR.execute(() -> processHashRequest(
@@ -76,7 +78,7 @@ public final class PacketIntegrityClient {
 
         int finalFailed = failed;
         minecraft.execute(() -> {
-            if (minecraft.getConnection() != null) {
+            if (!minecraft.hasSingleplayerServer() && minecraft.getConnection() != null) {
                 sendHashResponse(payload, results, finalFailed);
             }
         });

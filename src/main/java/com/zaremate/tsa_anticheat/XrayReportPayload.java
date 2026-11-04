@@ -38,7 +38,7 @@ public record XrayReportPayload(String data) implements CustomPacketPayload {
 
     public static void handle(XrayReportPayload payload, IPayloadContext context) {
         context.enqueueWork(() -> {
-            if (context.player() instanceof ServerPlayer player) {
+            if (context.player() instanceof ServerPlayer player && player.server.isDedicatedServer()) {
                 PlayerSnapshot snapshot = PlayerSnapshot.capture(player);
                 TsaWorker.execute(() -> verifyAndWriteReports(snapshot, payload.data()));
             }

@@ -4,6 +4,8 @@ NeoForge 1.21.1 / 21.1.249 client mod and server-side SHA-256 verifier for resou
 
 Client startup uses the common mod entry point and server-requested scans. The obsolete empty client event subscriber was removed to fix NeoForge's startup error (`ClientEvents has no @SubscribeEvent methods`).
 
+TSA is disabled in singleplayer and integrated servers, including worlds opened to LAN. Local worlds do not start TSA workers, scan files, process reports, run enforcement, or register `/tsa` commands. The client ignores TSA requests while hosting a local world. Dedicated servers and clients connected to them retain normal TSA behavior.
+
 ## In-game command help
 
 Use `/tsa help` to open page 1 of the complete command reference,

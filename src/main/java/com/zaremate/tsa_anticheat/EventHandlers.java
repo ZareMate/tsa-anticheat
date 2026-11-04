@@ -33,6 +33,7 @@ public final class EventHandlers {
 
     @SubscribeEvent
     public static void onServerStarting(net.neoforged.neoforge.event.server.ServerStartingEvent event) {
+        if (!event.getServer().isDedicatedServer()) return;
         TsaWorker.start();
         TsaWorker.execute(() -> {
             try {
@@ -61,6 +62,7 @@ public final class EventHandlers {
 
     @SubscribeEvent
     public static void onServerStopping(net.neoforged.neoforge.event.server.ServerStoppingEvent event) {
+        if (!event.getServer().isDedicatedServer()) return;
         TsaWorker.stop();
         HashFilenameStore.clearCache();
         LOGIN_CHECKS.clear();
@@ -74,7 +76,7 @@ public final class EventHandlers {
 
     @SubscribeEvent
     public static void onPlayerLogin(PlayerEvent.PlayerLoggedInEvent event) {
-        if (event.getEntity() instanceof ServerPlayer player) {
+        if (event.getEntity() instanceof ServerPlayer player && player.server.isDedicatedServer()) {
             PLAYER_NAMES.put(player.getUUID(), player.getGameProfile().getName());
             INVENTORY_CHECKS.put(player.getUUID(), TsaAnticheatConfig.LOGIN_CHECK_DELAY_SECONDS.get() * 20);
             if (TsaAnticheatConfig.PACKET_CHECK_ON_LOGIN.get()) {
@@ -85,6 +87,7 @@ public final class EventHandlers {
 
     @SubscribeEvent
     public static void onPlayerLogout(PlayerEvent.PlayerLoggedOutEvent event) {
+        if (!(event.getEntity() instanceof ServerPlayer player) || !player.server.isDedicatedServer()) return;
         LOGIN_CHECKS.remove(event.getEntity().getUUID());
         INVENTORY_CHECKS.remove(event.getEntity().getUUID());
         PLAYER_NAMES.remove(event.getEntity().getUUID());
@@ -93,6 +96,7 @@ public final class EventHandlers {
 
     @SubscribeEvent
     public static void onServerTick(ServerTickEvent.Post event) {
+        if (!event.getServer().isDedicatedServer()) return;
         PacketIntegrityManager.expireChecks();
         TsaHashManager.expireBatches();
         if (++historyRefreshTicks >= 20) {

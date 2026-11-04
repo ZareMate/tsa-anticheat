@@ -19,6 +19,7 @@ public final class PacketIntegrityCommands {
 
     @SubscribeEvent
     public static void register(RegisterCommandsEvent event) {
+        if (event.getCommandSelection() == Commands.CommandSelection.INTEGRATED) return;
         CommandDispatcher<CommandSourceStack> dispatcher = event.getDispatcher();
 
         dispatcher.register(

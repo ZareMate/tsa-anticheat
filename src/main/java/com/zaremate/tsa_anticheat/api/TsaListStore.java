@@ -1,6 +1,7 @@
 package com.zaremate.tsa_anticheat.api;
 
 import com.zaremate.tsa_anticheat.TsaFilenameDetection;
+import com.zaremate.tsa_anticheat.HashFilenameStore;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -25,6 +26,24 @@ final class TsaListStore {
         for (String line : lines(list.filename)) {
             String value = line.trim().toLowerCase(Locale.ROOT);
             if (value.matches("[0-9a-f]{64}")) result.add(value);
+        }
+        if (list == HashList.BLACKLISTED || list == HashList.ENFORCEMENT) {
+            // Keep hash identities unchanged, but present these lists by known filename.
+            // Unknown hashes sort after named entries, consistently by hash.
+            HashFilenameStore names = HashFilenameStore.open(directory);
+            Map<String, String> labels = new HashMap<>();
+            for (String hash : result) {
+                labels.put(hash, names.lookup(hash).stream()
+                        .map(HashFilenameStore.Entry::filename)
+                        .min(String.CASE_INSENSITIVE_ORDER.thenComparing(Comparator.naturalOrder()))
+                        .orElse(null));
+            }
+            List<String> sorted = new ArrayList<>(result);
+            sorted.sort(Comparator
+                    .comparing((String hash) -> labels.get(hash) == null)
+                    .thenComparing(hash -> labels.getOrDefault(hash, hash), String.CASE_INSENSITIVE_ORDER)
+                    .thenComparing(Comparator.naturalOrder()));
+            return Collections.unmodifiableSet(new LinkedHashSet<>(sorted));
         }
         return Collections.unmodifiableSet(result);
     }

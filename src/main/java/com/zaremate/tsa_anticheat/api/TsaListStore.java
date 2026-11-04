@@ -41,7 +41,7 @@ final class TsaListStore {
             List<String> sorted = new ArrayList<>(result);
             sorted.sort(Comparator
                     .comparing((String hash) -> labels.get(hash) == null)
-                    .thenComparing(hash -> labels.getOrDefault(hash, hash), String.CASE_INSENSITIVE_ORDER)
+                    .thenComparing(hash -> labels.get(hash) == null ? hash : labels.get(hash), String.CASE_INSENSITIVE_ORDER)
                     .thenComparing(Comparator.naturalOrder()));
             return Collections.unmodifiableSet(new LinkedHashSet<>(sorted));
         }

@@ -29,6 +29,23 @@ class TsaListStoreTest {
         }
     }
 
+    @Test void blacklistAndEnforcementSortByKnownNameNotHash() throws Exception {
+        String first = "f".repeat(64);
+        String second = "1".repeat(64);
+        String unknown = "0".repeat(64);
+        Files.writeString(directory.resolve("hash_filenames.tsv"),
+                first + "\\tMOD\\talpha.jar\\n" + second + "\\tMOD\\tZeta.jar\\n");
+        for (HashList list : List.of(HashList.BLACKLISTED, HashList.ENFORCEMENT)) {
+            store().editHash(list, second, true);
+            store().editHash(list, unknown, true);
+            store().editHash(list, first, true);
+            assertEquals(List.of(first, second, unknown), new ArrayList<>(store().hashes(list)));
+        }
+        store().editHash(HashList.ALLOWED, first, true);
+        store().editHash(HashList.ALLOWED, second, true);
+        assertEquals(List.of(second, first), new ArrayList<>(store().hashes(HashList.ALLOWED)));
+    }
+
     @Test void removingAllowlistHashNeverDeletesBlacklistOrEnforcement() throws Exception {
         for (HashList list : HashList.values()) store().editHash(list, HASH, true);
         store().editHash(HashList.ALLOWED, HASH, false);
